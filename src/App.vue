@@ -1,5 +1,7 @@
 <script setup></script>
 
 <template>
-  <router-view></router-view>
+  <div class="font-sans">
+    <router-view />
+  </div>
 </template>
