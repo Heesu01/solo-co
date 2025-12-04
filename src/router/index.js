@@ -1,0 +1,29 @@
+import { createRouter, createWebHistory } from "vue-router";
+
+import HomeView from "../views/home/HomeView.vue";
+import LoginView from "../views/auth/LoginView.vue";
+import SignupView from "../views/auth/SignupView.vue";
+import MyPageHome from "../views/mypage/MyPageHome.vue";
+import SoloHomeView from "../views/solo/SoloHomeView.vue";
+import GroupHomeView from "../views/group/GroupHomeView.vue";
+import NotFoundView from "../views/NotFoundView.vue";
+
+const routes = [
+  { path: "/", name: "home", component: HomeView },
+  { path: "/login", name: "login", component: LoginView },
+  { path: "/signup", name: "signup", component: SignupView },
+
+  { path: "/mypage", name: "mypage", component: MyPageHome },
+
+  { path: "/solo", name: "solo-home", component: SoloHomeView },
+  { path: "/group", name: "group-home", component: GroupHomeView },
+
+  { path: "/:pathMatch(.*)*", name: "not-found", component: NotFoundView },
+];
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+});
+
+export default router;
