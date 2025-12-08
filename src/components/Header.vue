@@ -48,20 +48,29 @@
           </template>
 
           <template v-else>
-            <button
-              type="button"
-              class="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200"
-            >
-              <div
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 via-indigo-400 to-violet-500 text-xs font-semibold text-white"
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200"
               >
-                {{ userInitial }}
-              </div>
+                <div
+                  class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 via-indigo-400 to-violet-500 text-xs font-semibold text-white"
+                >
+                  {{ userInitial }}
+                </div>
 
-              <span class="max-w-[120px] truncate font-medium">
-                {{ userName || '사용자' }}
-              </span>
-            </button>
+                <span class="max-w-[120px] truncate font-medium">
+                  {{ userName || '사용자' }}
+                </span>
+              </button>
+              <button
+                type="button"
+                @click="handleLogout"
+                class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
+              >
+                로그아웃
+              </button>
+            </div>
           </template>
         </div>
       </div>
@@ -71,14 +80,19 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
 
-const props = defineProps({
-  isAuthenticated: { type: Boolean, default: false },
-  userName: { type: String, default: '' },
-})
+const { isAuthenticated, userName, clearAuth } = useAuth()
+const router = useRouter()
 
 const userInitial = computed(() => {
-  if (!props.userName) return '?'
-  return props.userName.trim().charAt(0).toUpperCase()
+  if (!userName.value) return '?'
+  return userName.value.trim().charAt(0).toUpperCase()
 })
+
+const handleLogout = () => {
+  clearAuth()
+  router.push('/login')
+}
 </script>

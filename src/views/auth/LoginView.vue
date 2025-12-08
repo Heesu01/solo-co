@@ -118,11 +118,14 @@
 import { ref } from 'vue'
 import { login } from '@/api/auth'
 import { useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
 
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const router = useRouter()
+
+const { setAuth } = useAuth()
 
 const togglePassword = () => {
   showPassword.value = !showPassword.value
@@ -133,6 +136,15 @@ const handleLogin = async () => {
     const res = await login({
       username: email.value,
       password: password.value,
+    })
+
+    setAuth({
+      token: res.accessToken,
+      user: {
+        username: res.username,
+        email: res.email,
+        name: res.name,
+      },
     })
 
     console.log('로그인 성공:', res)
