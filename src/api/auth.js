@@ -44,3 +44,15 @@ export const login = async ({ username, password }) => {
     throw err
   }
 }
+
+// 로그아웃
+export const logout = async () => {
+  try {
+    const res = await api.post('/api/auth/logout')
+
+    return res.data
+  } catch (err) {
+    console.error('로그아웃 실패:', err.response?.data || err.message)
+    throw err
+  }
+}

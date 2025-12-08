@@ -82,6 +82,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { logout } from '@/api/auth'
 
 const { isAuthenticated, userName, clearAuth } = useAuth()
 const router = useRouter()
@@ -91,7 +92,13 @@ const userInitial = computed(() => {
   return userName.value.trim().charAt(0).toUpperCase()
 })
 
-const handleLogout = () => {
+const handleLogout = async () => {
+  try {
+    await logout()
+  } catch (e) {
+    console.warn('서버 로그아웃 실패 — 그래도 로컬 로그아웃 진행합니다.')
+  }
+
   clearAuth()
   router.push('/login')
 }
