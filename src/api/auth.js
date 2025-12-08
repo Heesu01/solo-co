@@ -16,3 +16,31 @@ export const signup = async ({ username, password, email, name }) => {
     throw err
   }
 }
+
+// 로그인
+export const login = async ({ username, password }) => {
+  try {
+    const res = await api.post('/api/auth/login', {
+      username,
+      password,
+    })
+
+    if (res.data?.token) {
+      localStorage.setItem('token', res.data.token)
+
+      localStorage.setItem(
+        'user',
+        JSON.stringify({
+          username: res.data.username,
+          email: res.data.email,
+          name: res.data.name,
+        }),
+      )
+    }
+
+    return res.data
+  } catch (err) {
+    console.error('로그인 실패:', err.response?.data || err.message)
+    throw err
+  }
+}

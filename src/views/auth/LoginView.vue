@@ -63,7 +63,6 @@
                   <label class="text-xs font-medium text-slate-600">아이디</label>
                   <input
                     v-model="email"
-                    type="email"
                     placeholder="아이디를 입력해주세요"
                     class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/40 px-4 text-sm outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
                   />
@@ -117,16 +116,30 @@
 
 <script setup>
 import { ref } from 'vue'
+import { login } from '@/api/auth'
+import { useRouter } from 'vue-router'
 
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
+const router = useRouter()
 
 const togglePassword = () => {
   showPassword.value = !showPassword.value
 }
 
-const handleLogin = () => {
-  //
+const handleLogin = async () => {
+  try {
+    const res = await login({
+      username: email.value,
+      password: password.value,
+    })
+
+    console.log('로그인 성공:', res)
+
+    router.push('/')
+  } catch (error) {
+    alert(error.response?.data?.message || '로그인에 실패했습니다.')
+  }
 }
 </script>
