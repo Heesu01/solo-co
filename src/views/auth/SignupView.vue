@@ -194,6 +194,8 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { signup } from '@/api/auth'
+import { useRouter } from 'vue-router'
 
 const username = ref('')
 const email = ref('')
@@ -207,6 +209,8 @@ const agreeAll = ref(false)
 const agreeService = ref(false)
 const agreePrivacy = ref(false)
 const agreeMarketing = ref(false)
+
+const router = useRouter()
 
 watch(agreeAll, (val) => {
   if (val) {
@@ -243,8 +247,22 @@ const togglePassword = () => {
   showPassword.value = !showPassword.value
 }
 
-const handleSignup = () => {
+const handleSignup = async () => {
   if (!canSubmit.value) return
-  //
+
+  try {
+    const res = await signup({
+      username: username.value,
+      password: password.value,
+      email: email.value,
+      name: name.value,
+    })
+
+    console.log('회원가입 성공:', res)
+
+    router.push('/login')
+  } catch (error) {
+    alert(error.response?.data?.message || '회원가입에 실패했습니다.')
+  }
 }
 </script>
