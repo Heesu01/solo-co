@@ -79,7 +79,20 @@ const inviteInfo = ref(null)
 
 const inviteCode = route.params.code
 
-const loadInviteInfo = async () => {
+const isLoggedIn = () => {
+  return !!localStorage.getItem('token')
+}
+
+if (!isLoggedIn()) {
+  router.push({
+    path: '/login',
+    query: { redirect: route.fullPath },
+  })
+} else {
+  onMounted(loadInviteInfo)
+}
+
+async function loadInviteInfo() {
   if (!inviteCode) {
     isError.value = true
     return
@@ -90,7 +103,6 @@ const loadInviteInfo = async () => {
 
   try {
     const res = await validateInviteCode(inviteCode)
-
     const payload = res.data
     const data = payload?.data || payload
 
@@ -108,22 +120,28 @@ const loadInviteInfo = async () => {
   }
 }
 
-onMounted(loadInviteInfo)
-
 const handleJoin = async () => {
   if (!inviteCode) return
 
   isJoining.value = true
   try {
     await joinTravelInvite(inviteCode)
-
     alert('프로젝트 참여가 완료되었어요!')
+
     if (inviteInfo.value?.projectId) {
       router.push(`/group/${inviteInfo.value.projectId}`)
     } else {
       router.push('/group')
     }
   } catch (e) {
+    if (e.response?.status === 401) {
+      alert('로그인이 필요해요. 다시 로그인해 주세요.')
+      router.push({
+        path: '/login',
+        query: { redirect: route.fullPath },
+      })
+      return
+    }
     console.error('초대 참여 실패:', e)
     alert('참여에 실패했어요. 다시 시도해 주세요.')
   } finally {

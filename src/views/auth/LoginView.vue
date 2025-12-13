@@ -117,14 +117,16 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { login } from '@/api/auth'
-import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
+
 const router = useRouter()
+const route = useRoute()
 const { setAuth } = useAuth()
 
 const isDisabled = computed(() => {
@@ -155,8 +157,14 @@ const handleLogin = async () => {
 
     console.log('로그인 성공:', res)
 
-    router.push('/')
+    const redirect = route.query.redirect
+    if (typeof redirect === 'string' && redirect.length > 0) {
+      router.replace(redirect)
+    } else {
+      router.replace('/')
+    }
   } catch (error) {
+    console.error('로그인 실패:', error)
     alert(error.response?.data?.message || '로그인에 실패했습니다.')
   }
 }
