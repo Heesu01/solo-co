@@ -16,3 +16,12 @@ export const createTravel = ({ dto, thumbnailFile }) => {
     },
   })
 }
+
+// 그룹 여행 조회
+export const fetchGroupTravels = () => {
+  return api.get('/api/travels', {
+    params: {
+      projectType: 'GROUP',
+    },
+  })
+}

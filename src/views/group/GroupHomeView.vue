@@ -144,7 +144,20 @@
           </div>
         </div>
 
-        <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div v-if="isLoading" class="text-[12px] text-slate-400">
+          그룹 여행을 불러오는 중이에요...
+        </div>
+        <div v-else-if="isError" class="text-[12px] text-rose-500">
+          데이터를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
+        </div>
+        <div v-else-if="sortedTrips.length === 0" class="text-[12px] text-slate-400">
+          아직 만든 그룹 여행이 없어요. 새로운 그룹 여행을 만들어볼까요?
+        </div>
+
+        <div
+          v-if="!isLoading && !isError && sortedTrips.length > 0"
+          class="grid gap-5 md:grid-cols-2 lg:grid-cols-3"
+        >
           <TripCard
             v-for="trip in sortedTrips"
             :key="trip.id"
@@ -179,100 +192,72 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import TripCard from '@/components/group/TripCard.vue'
+import { fetchGroupTravels } from '@/api/group'
 
 const router = useRouter()
 
 const searchQuery = ref('')
 const sortKey = ref('recent')
 
-const trips = ref([
-  {
-    projectId: 1,
-    projectType: 'GROUP',
-    id: 1,
-    title: '제주도 3박 4일 친구여행',
-    location: '제주',
-    startDate: '2025-03-01',
-    endDate: '2025-03-04',
-    dateLabel: '2025-03-01 ~ 2025-03-04',
-    thumbnail: 'https://yourcdn.com/images/tokyo_main.jpg',
-    status: 'UPCOMING',
-    createdAt: '2025-02-01',
-    members: 4,
-  },
-  {
-    projectId: 2,
-    projectType: 'GROUP',
-    id: 2,
-    title: '퇴사 기념 오사카 먹방 투어',
-    location: '오사카',
-    startDate: '2025-02-10',
-    endDate: '2025-02-13',
-    dateLabel: '2025-02-10 ~ 2025-02-13',
-    thumbnail: 'https://yourcdn.com/images/tokyo_main.jpg',
-    status: 'IN_PROGRESS',
-    createdAt: '2025-02-05',
-    members: 3,
-  },
-  {
-    projectId: 3,
-    projectType: 'GROUP',
-    id: 3,
-    title: '부산 바다 힐링 주말여행',
-    location: '부산',
-    startDate: '2025-01-18',
-    endDate: '2025-01-19',
-    dateLabel: '2025-01-18 ~ 2025-01-19',
-    thumbnail: 'https://yourcdn.com/images/tokyo_main.jpg',
-    status: 'DONE',
-    createdAt: '2025-01-01',
-    members: 3,
-  },
-  {
-    projectId: 4,
-    projectType: 'GROUP',
-    id: 4,
-    title: '도쿄 벚꽃 야경 여행',
-    location: '도쿄',
-    startDate: '2025-04-02',
-    endDate: '2025-04-06',
-    dateLabel: '2025-04-02 ~ 2025-04-06',
-    thumbnail: 'https://yourcdn.com/images/tokyo_main.jpg',
-    status: 'UPCOMING',
-    createdAt: '2025-02-20',
-    members: 2,
-  },
-  {
-    projectId: 5,
-    projectType: 'GROUP',
-    id: 5,
-    title: '강릉 겨울 바다 감성 여행',
-    location: '강릉',
-    startDate: '2025-01-05',
-    endDate: '2025-01-07',
-    dateLabel: '2025-01-05 ~ 2025-01-07',
-    thumbnail: 'https://yourcdn.com/images/tokyo_main.jpg',
-    status: 'DONE',
-    createdAt: '2024-12-15',
-    members: 2,
-  },
-])
+const trips = ref([])
+const isLoading = ref(false)
+const isError = ref(false)
+
+const loadGroupTrips = async () => {
+  isLoading.value = true
+  isError.value = false
+
+  try {
+    const res = await fetchGroupTravels()
+    const data = res.data || []
+
+    trips.value = data.map((item) => {
+      const start = item.startDate
+      const end = item.endDate
+
+      return {
+        id: item.projectId,
+        projectId: item.projectId,
+
+        title: item.title ?? '',
+        location: item.location ?? '',
+        startDate: start,
+        endDate: end,
+        dateLabel: start && end ? `${start} ~ ${end}` : '',
+
+        thumbnail: item.thumbnail ?? '',
+        status: item.status ?? 'UPCOMING',
+        createdAt: start ?? '',
+        members: item.memberCount ?? 1,
+
+        shareUrl: null,
+      }
+    })
+  } catch (e) {
+    console.error('그룹 여행 조회 실패:', e)
+    isError.value = true
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(loadGroupTrips)
 
 const filteredTrips = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
 
-  let base = trips.value.filter((trip) => trip.projectType === 'GROUP')
+  let base = trips.value
 
   if (q) {
     base = base.filter((trip) => {
-      return (
-        trip.title.toLowerCase().includes(q) ||
-        trip.location.toLowerCase().includes(q) ||
-        trip.dateLabel.toLowerCase().includes(q)
-      )
+      const title = (trip.title || '').toLowerCase()
+      const location = (trip.location || '').toLowerCase()
+      const dateLabel = (trip.dateLabel || '').toLowerCase()
+
+      return title.includes(q) || location.includes(q) || dateLabel.includes(q)
     })
   }
 
@@ -283,23 +268,25 @@ const sortedTrips = computed(() => {
   const base = [...filteredTrips.value]
 
   if (sortKey.value === 'recent') {
-    return base.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    return base.sort((a, b) => (a.startDate < b.startDate ? 1 : -1))
   }
 
   if (sortKey.value === 'old') {
-    return base.sort((a, b) => (a.createdAt > b.createdAt ? 1 : -1))
+    return base.sort((a, b) => (a.startDate > b.startDate ? 1 : -1))
   }
 
   if (sortKey.value === 'status') {
     const order = { UPCOMING: 0, IN_PROGRESS: 1, DONE: 2 }
-    return base.sort((a, b) => order[a.status] - order[b.status])
+    return base.sort((a, b) => (order[a.status] ?? 99) - (order[b.status] ?? 99))
   }
 
   return base
 })
 
-const ongoingCount = computed(() => trips.value.filter((t) => t.status === 'IN_PROGRESS').length)
-const completedCount = computed(() => trips.value.filter((t) => t.status === 'DONE').length)
+const ongoingCount = computed(
+  () => filteredTrips.value.filter((t) => t.status === 'IN_PROGRESS').length,
+)
+const completedCount = computed(() => filteredTrips.value.filter((t) => t.status === 'DONE').length)
 
 const handleCreateGroup = () => {
   router.push('/group/create')
