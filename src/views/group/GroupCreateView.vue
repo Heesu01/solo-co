@@ -283,8 +283,12 @@
 
 <script setup>
 import { computed, ref, watch, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { createTravel } from '@/api/group'
 
-// const projectType = computed(() => (route.path.startsWith('/group') ? 'GROUP' : 'PERSONAL'))
+const route = useRoute()
+const router = useRouter()
+const projectType = computed(() => (route.path.startsWith('/group') ? 'GROUP' : 'PERSONAL'))
 
 const title = ref('')
 const location = ref('')
@@ -349,7 +353,35 @@ watch(hasLocation, async (newVal, oldVal) => {
 })
 
 const handleSubmit = async () => {
-  //
+  submitAttempted.value = true
+  if (!canSubmit.value || isSubmitting.value) return
+
+  isSubmitting.value = true
+
+  try {
+    const dto = {
+      title: title.value.trim(),
+      location: location.value.trim(),
+      startDate: startDate.value,
+      endDate: endDate.value,
+      projectType: projectType.value,
+    }
+
+    const payload = {
+      dto,
+      thumbnailFile: thumbnailFile.value,
+    }
+
+    const res = await createTravel(payload)
+    console.log(res.data)
+
+    router.push('/group')
+  } catch (err) {
+    console.error(err)
+    alert('여행 생성 중 문제가 발생했습니다.')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
