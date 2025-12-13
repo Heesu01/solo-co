@@ -259,7 +259,7 @@ const props = defineProps({
   trip: { type: Object, required: true },
 })
 
-const emit = defineEmits(['enter', 'delete', 'update'])
+const emit = defineEmits(['enter', 'delete', 'update', 'request-share'])
 
 const showMenu = ref(false)
 const showEditModal = ref(false)
@@ -290,6 +290,7 @@ const openEditModal = () => {
 }
 
 const openShareModal = () => {
+  emit('request-share', props.trip.id)
   showShareModal.value = true
   showMenu.value = false
 }
@@ -350,7 +351,7 @@ const handleEditSubmit = () => {
       endDate: editEndDate.value || null,
       projectType: props.trip.projectType,
     },
-    thumbnail: editThumbnailFile.value,
+    thumbnail: editThumbnailFile.value || null,
   })
 
   closeModals()

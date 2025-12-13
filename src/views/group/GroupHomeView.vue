@@ -165,6 +165,7 @@
             @enter="handleEnterTrip"
             @delete="handleDelete"
             @update="handleUpdateTrip"
+            @request-share="handleRequestShare"
           />
 
           <button
@@ -196,7 +197,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import TripCard from '@/components/group/TripCard.vue'
-import { fetchGroupTravels, updateTravel, deleteTravel } from '@/api/group'
+import { fetchGroupTravels, updateTravel, deleteTravel, createTravelInvite } from '@/api/group'
 
 const router = useRouter()
 
@@ -323,6 +324,22 @@ const handleDelete = async (id) => {
   } catch (e) {
     console.error('그룹 여행 삭제 실패:', e)
     alert('여행을 삭제하는 데 실패했어요. 잠시 후 다시 시도해 주세요.')
+  }
+}
+
+const handleRequestShare = async (projectId) => {
+  try {
+    const res = await createTravelInvite(projectId)
+    const inviteUrl = res.data?.inviteUrl
+
+    if (!inviteUrl) return
+
+    trips.value = trips.value.map((trip) =>
+      trip.id === projectId ? { ...trip, shareUrl: inviteUrl } : trip,
+    )
+  } catch (e) {
+    console.error('초대 링크 생성 실패:', e)
+    alert('초대 링크를 생성하는 데 실패했어요. 잠시 후 다시 시도해 주세요.')
   }
 }
 </script>

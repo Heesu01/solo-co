@@ -45,3 +45,21 @@ export const updateTravel = ({ projectId, dto, thumbnailFile }) => {
 export const deleteTravel = (projectId) => {
   return api.delete(`/api/travels/${projectId}`)
 }
+
+// 초대 링크 생성
+export const createTravelInvite = (projectId) => {
+  return api.post(`/api/travels/${projectId}/invite`)
+}
+
+// 초대 코드 검증
+export const validateInviteCode = (code) => {
+  return api.get('/api/travels/invite/validate', {
+    params: { code },
+  })
+}
+
+// 초대 참여
+export const joinTravelInvite = (codeOrObj) => {
+  const code = typeof codeOrObj === 'string' ? codeOrObj : (codeOrObj?.code ?? '')
+  return api.post('/api/travels/invite/join', { code })
+}
