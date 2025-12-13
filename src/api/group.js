@@ -17,11 +17,31 @@ export const createTravel = ({ dto, thumbnailFile }) => {
   })
 }
 
-// 그룹 여행 조회
+// 그룹 여행 목록 조회
 export const fetchGroupTravels = () => {
   return api.get('/api/travels', {
-    params: {
-      projectType: 'GROUP',
+    params: { projectType: 'GROUP' },
+  })
+}
+
+// 여행 수정
+export const updateTravel = ({ projectId, dto, thumbnailFile }) => {
+  const formData = new FormData()
+
+  formData.append('dto', new Blob([JSON.stringify(dto)], { type: 'application/json' }))
+
+  if (thumbnailFile) {
+    formData.append('thumbnail', thumbnailFile)
+  }
+
+  return api.put(`/api/travels/${projectId}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
     },
   })
+}
+
+// 여행 삭제
+export const deleteTravel = (projectId) => {
+  return api.delete(`/api/travels/${projectId}`)
 }

@@ -164,6 +164,7 @@
             :trip="trip"
             @enter="handleEnterTrip"
             @delete="handleDelete"
+            @update="handleUpdateTrip"
           />
 
           <button
@@ -195,7 +196,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import TripCard from '@/components/group/TripCard.vue'
-import { fetchGroupTravels } from '@/api/group'
+import { fetchGroupTravels, updateTravel, deleteTravel } from '@/api/group'
 
 const router = useRouter()
 
@@ -221,6 +222,7 @@ const loadGroupTrips = async () => {
       return {
         id: item.projectId,
         projectId: item.projectId,
+        projectType: item.projectType ?? 'GROUP',
 
         title: item.title ?? '',
         location: item.location ?? '',
@@ -296,7 +298,31 @@ const handleEnterTrip = (trip) => {
   router.push(`/group/${trip.id}`)
 }
 
-const handleDelete = (id) => {
-  trips.value = trips.value.filter((t) => t.id !== id)
+const handleUpdateTrip = async ({ id, dto, thumbnail }) => {
+  try {
+    await updateTravel({
+      projectId: id,
+      dto,
+      thumbnailFile: thumbnail || null,
+    })
+
+    await loadGroupTrips()
+  } catch (e) {
+    console.error('그룹 여행 수정 실패:', e)
+    alert('여행 정보를 수정하는 데 실패했어요. 잠시 후 다시 시도해 주세요.')
+  }
+}
+
+const handleDelete = async (id) => {
+  const ok = window.confirm('정말 이 여행을 삭제할까요? 복구할 수 없어요.')
+  if (!ok) return
+
+  try {
+    await deleteTravel(id)
+    trips.value = trips.value.filter((t) => t.id !== id)
+  } catch (e) {
+    console.error('그룹 여행 삭제 실패:', e)
+    alert('여행을 삭제하는 데 실패했어요. 잠시 후 다시 시도해 주세요.')
+  }
 }
 </script>
