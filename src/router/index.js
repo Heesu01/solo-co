@@ -7,6 +7,7 @@ import MyPageHome from '@/views/mypage/MyPageHome.vue'
 import SoloHomeView from '@/views/solo/SoloHomeView.vue'
 import GroupHomeView from '@/views/group/GroupHomeView.vue'
 import GroupCreateView from '@/views/group/GroupCreateView.vue'
+import GroupDetailView from '@/views/group/GroupDetailView.vue'
 import InviteJoinView from '@/views/group/InviteJoinView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 
@@ -20,6 +21,7 @@ const routes = [
   { path: '/solo', name: 'solo-home', component: SoloHomeView },
   { path: '/group', name: 'group-home', component: GroupHomeView },
   { path: '/group/create', name: 'group-create', component: GroupCreateView },
+  { path: '/group/:id', name: 'group-detail', component: GroupDetailView },
   { path: '/invite/:code', name: 'InviteJoin', component: InviteJoinView },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
 ]
