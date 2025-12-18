@@ -68,3 +68,8 @@ export const joinTravelInvite = (codeOrObj) => {
 export const fetchTravelDetail = (projectId) => {
   return api.get(`/api/travels/${projectId}`)
 }
+
+// 멤버 제거
+export const removeMember = (projectId, memberId) => {
+  return api.delete(`/api/travels/${projectId}/members/${memberId}`)
+}

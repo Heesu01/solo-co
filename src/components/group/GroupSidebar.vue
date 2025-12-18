@@ -92,11 +92,11 @@
             </div>
 
             <button
-              class="rounded-md px-2 py-1 text-[11px] font-medium text-slate-600 opacity-0 transition group-hover:opacity-100 hover:bg-white hover:text-slate-800"
+              class="rounded-md px-2 py-1 text-[11px] font-medium text-slate-600 opacity-0 transition group-hover:opacity-100 hover:bg-white hover:text-rose-600"
               type="button"
-              @click.stop="$emit('manage-member', m)"
+              @click.stop="onRemoveMember(m)"
             >
-              관리
+              삭제
             </button>
           </li>
         </ul>
@@ -104,12 +104,11 @@
     </section>
   </aside>
 </template>
-
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { MapPinIcon, CalendarDaysIcon } from '@heroicons/vue/24/outline'
-import { fetchTravelDetail } from '@/api/group'
+import { fetchTravelDetail, removeMember } from '@/api/group'
 
 defineEmits(['manage-member'])
 
@@ -121,9 +120,13 @@ const members = ref([])
 const loading = ref(false)
 const errorMsg = ref('')
 
-const membersCount = computed(() => members.value.length)
+const membersCount = computed(() => (Array.isArray(members.value) ? members.value.length : 0))
 
-const getPayload = (res) => res?.data?.data ?? res?.data ?? res
+const pickPayload = (res) => {
+  const a = res?.data ?? res
+  const b = a?.data ?? a
+  return b
+}
 
 const load = async () => {
   const projectId = route.params.id
@@ -134,8 +137,7 @@ const load = async () => {
 
   try {
     const res = await fetchTravelDetail(projectId)
-    const payload = getPayload(res)
-
+    const payload = pickPayload(res)
     group.value = payload?.project ?? null
     members.value = Array.isArray(payload?.members) ? payload.members : []
   } catch (e) {
@@ -144,6 +146,25 @@ const load = async () => {
     members.value = []
   } finally {
     loading.value = false
+  }
+}
+
+const onRemoveMember = async (member) => {
+  const projectId = route.params.id
+  if (!projectId || !member?.userId) return
+
+  if (!confirm(`${member.name}님을 삭제할까요?`)) return
+
+  try {
+    await removeMember(projectId, member.userId)
+    members.value = members.value.filter((m) => m.userId !== member.userId)
+  } catch (e) {
+    const status = e?.response?.status
+    if (status === 401 || status === 403) {
+      alert('방장만 멤버를 삭제할 수 있어요.')
+      return
+    }
+    alert('삭제에 실패했어요. 잠시 후 다시 시도해 주세요.')
   }
 }
 
