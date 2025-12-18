@@ -16,15 +16,20 @@
           <nav class="hidden items-center gap-10 text-sm font-medium text-slate-600 md:flex">
             <RouterLink
               to="/solo"
-              class="transition-colors hover:text-slate-900"
-              active-class="text-slate-900 font-semibold"
+              :class="[
+                'transition-colors hover:text-slate-900',
+                isSoloActive ? 'text-slate-900 font-semibold' : '',
+              ]"
             >
               개인 여행
             </RouterLink>
+
             <RouterLink
               to="/group"
-              class="transition-colors hover:text-slate-900"
-              active-class="text-slate-900 font-semibold"
+              :class="[
+                'transition-colors hover:text-slate-900',
+                isGroupActive ? 'text-slate-900 font-semibold' : '',
+              ]"
             >
               그룹 여행
             </RouterLink>
@@ -80,17 +85,21 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { logout } from '@/api/auth'
 
 const { isAuthenticated, userName, clearAuth } = useAuth()
 const router = useRouter()
+const route = useRoute()
 
 const userInitial = computed(() => {
   if (!userName.value) return '?'
   return userName.value.trim().charAt(0).toUpperCase()
 })
+
+const isSoloActive = computed(() => route.path === '/solo' || route.path.startsWith('/solo/'))
+const isGroupActive = computed(() => route.path === '/group' || route.path.startsWith('/group/'))
 
 const handleLogout = async () => {
   try {
@@ -98,7 +107,6 @@ const handleLogout = async () => {
   } catch (e) {
     console.warn('서버 로그아웃 실패 — 그래도 로컬 로그아웃 진행합니다.')
   }
-
   clearAuth()
   router.push('/login')
 }
