@@ -3,7 +3,7 @@
     <div class="w-full px-3 pt-20 pb-10 md:px-6 pt-30">
       <div class="mx-auto max-w-[1400px]">
         <div class="grid gap-6 items-start" style="grid-template-columns: 360px 1fr">
-          <GroupSidebar :group="group" :members="members" @manage-member="onManageMember" />
+          <GroupSidebar @manage-member="onManageMember" />
 
           <main class="min-w-0">
             <section class="border border-slate-200 bg-white">
@@ -100,23 +100,6 @@ import GroupSidebar from '@/components/group/GroupSidebar.vue'
 const router = useRouter()
 const route = useRoute()
 
-const group = ref({
-  id: route.params?.id || 1,
-  title: '2월 도쿄 졸업여행',
-  location: '도쿄',
-  startDate: '2025-02-10',
-  endDate: '2025-02-12',
-  status: 'IN_PROGRESS',
-  thumbnail:
-    'https://images.unsplash.com/photo-1549693578-d683be217e58?q=80&w=1200&auto=format&fit=crop',
-})
-
-const members = ref([
-  { id: 1, name: '희수', email: 'heesu@example.com', role: 'OWNER', avatar: '' },
-  { id: 2, name: '태정', email: 'jiseon@example.com', role: 'MEMBER', avatar: '' },
-  { id: 3, name: '지선', email: 'seoyoung@example.com', role: 'MEMBER', avatar: '' },
-])
-
 const posts = ref([
   {
     id: 101,
@@ -164,27 +147,12 @@ const filteredPosts = computed(() => {
 })
 
 const goCreatePost = () => {
-  router.push(`/group/${group.value.id}/create`)
+  router.push(`/group/${route.params.id}/create`)
 }
 
 const goPostDetail = (postId) => {
-  router.push(`/group/${group.value.id}/community/${postId}`)
+  router.push(`/group/${route.params.id}/community/${postId}`)
 }
 
 const onManageMember = (m) => alert(`${m.name} 멤버 관리 UI를 여기서 열면 돼요.`)
-
-const initials = (name = '') => name.trim().slice(0, 1) || '?'
-
-const statusLabel = (s) => {
-  if (s === 'UPCOMING') return '예정'
-  if (s === 'IN_PROGRESS') return '진행중'
-  if (s === 'DONE') return '완료'
-  return '상태'
-}
-
-const statusChipClass = (s) => {
-  if (s === 'IN_PROGRESS') return 'bg-emerald-50 text-emerald-700'
-  if (s === 'DONE') return 'bg-slate-100 text-slate-600'
-  return 'bg-sky-50 text-sky-700'
-}
 </script>

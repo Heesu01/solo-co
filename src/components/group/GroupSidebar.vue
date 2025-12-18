@@ -16,7 +16,7 @@
           <div class="min-w-0">
             <p class="text-[11px] font-semibold tracking-[0.14em] text-slate-400">GROUP TRIP</p>
             <h1 class="mt-1 truncate text-[15px] font-semibold text-slate-900">
-              {{ group?.title }}
+              {{ group?.title || (loading ? '불러오는 중…' : '') }}
             </h1>
           </div>
 
@@ -31,14 +31,20 @@
         <div class="mt-3 space-y-2 text-[12px] text-slate-700">
           <div class="flex items-center gap-2">
             <MapPinIcon class="h-4 w-4 text-slate-400" />
-            <span class="truncate">{{ group?.location }}</span>
+            <span class="truncate">{{ group?.location || '-' }}</span>
           </div>
 
           <div class="flex items-center gap-2">
             <CalendarDaysIcon class="h-4 w-4 text-slate-400" />
-            <p class="font-medium text-slate-700">{{ group?.startDate }} ~ {{ group?.endDate }}</p>
+            <p class="font-medium text-slate-700">
+              {{ group?.startDate || '-' }} ~ {{ group?.endDate || '-' }}
+            </p>
           </div>
         </div>
+
+        <p v-if="errorMsg" class="mt-3 text-[12px] font-medium text-rose-600">
+          {{ errorMsg }}
+        </p>
       </div>
 
       <div class="border-t border-slate-200"></div>
@@ -46,19 +52,23 @@
       <div class="p-4">
         <div class="flex items-end justify-between">
           <h2 class="text-sm font-semibold text-slate-900">멤버</h2>
-          <p class="text-[12px] text-slate-500">{{ members?.length ?? 0 }}명</p>
+          <p class="text-[12px] text-slate-500">{{ membersCount }}명</p>
         </div>
         <p class="mt-1 text-[12px] text-slate-500">참여 멤버 관리</p>
 
         <ul class="mt-3 space-y-1">
           <li
             v-for="m in members"
-            :key="m.id"
+            :key="m.userId"
             class="group flex items-center justify-between rounded-lg px-2 py-2 hover:bg-slate-50"
           >
             <div class="flex items-center gap-3 min-w-0">
               <div class="h-8 w-8 overflow-hidden rounded-full bg-white ring-1 ring-slate-200">
-                <img v-if="m.avatar" :src="m.avatar" class="h-full w-full object-cover" />
+                <img
+                  v-if="m.profileImage"
+                  :src="m.profileImage"
+                  class="h-full w-full object-cover"
+                />
                 <div
                   v-else
                   class="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-500"
@@ -77,7 +87,7 @@
                     방장
                   </span>
                 </p>
-                <p class="truncate text-[11px] text-slate-500">{{ m.email }}</p>
+                <p class="truncate text-[11px] text-slate-500">@{{ m.username }}</p>
               </div>
             </div>
 
@@ -96,14 +106,49 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { MapPinIcon, CalendarDaysIcon } from '@heroicons/vue/24/outline'
-
-defineProps({
-  group: { type: Object, required: true },
-  members: { type: Array, default: () => [] },
-})
+import { fetchTravelDetail } from '@/api/group'
 
 defineEmits(['manage-member'])
+
+const route = useRoute()
+
+const group = ref(null)
+const members = ref([])
+
+const loading = ref(false)
+const errorMsg = ref('')
+
+const membersCount = computed(() => members.value.length)
+
+const getPayload = (res) => res?.data?.data ?? res?.data ?? res
+
+const load = async () => {
+  const projectId = route.params.id
+  if (!projectId) return
+
+  loading.value = true
+  errorMsg.value = ''
+
+  try {
+    const res = await fetchTravelDetail(projectId)
+    const payload = getPayload(res)
+
+    group.value = payload?.project ?? null
+    members.value = Array.isArray(payload?.members) ? payload.members : []
+  } catch (e) {
+    errorMsg.value = '그룹 정보를 불러오지 못했어요.'
+    group.value = null
+    members.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(load)
+watch(() => route.params.id, load)
 
 const initials = (name = '') => name.trim().slice(0, 1) || '?'
 

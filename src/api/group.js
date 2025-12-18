@@ -63,3 +63,8 @@ export const joinTravelInvite = (codeOrObj) => {
   const code = typeof codeOrObj === 'string' ? codeOrObj : (codeOrObj?.code ?? '')
   return api.post('/api/travels/invite/join', { code })
 }
+
+// 여행 상세 조회
+export const fetchTravelDetail = (projectId) => {
+  return api.get(`/api/travels/${projectId}`)
+}
