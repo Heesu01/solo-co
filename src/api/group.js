@@ -73,3 +73,20 @@ export const fetchTravelDetail = (projectId) => {
 export const removeMember = (projectId, memberId) => {
   return api.delete(`/api/travels/${projectId}/members/${memberId}`)
 }
+
+// 커뮤니티 글 작성
+export const createTravelPost = ({ projectId, dto, images = [] }) => {
+  const formData = new FormData()
+
+  formData.append('dto', new Blob([JSON.stringify(dto)], { type: 'application/json' }))
+
+  if (Array.isArray(images) && images.length > 0) {
+    images.forEach((file) => {
+      if (file) formData.append('images', file)
+    })
+  }
+
+  return api.post(`/api/travels/${projectId}/posts`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}

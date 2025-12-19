@@ -295,10 +295,14 @@
 
 <script setup>
 import { computed, reactive, ref, watch, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { createTravelPost } from '@/api/group'
 import GroupSidebar from '@/components/group/GroupSidebar.vue'
 
 const router = useRouter()
+const route = useRoute()
+
+const projectId = computed(() => Number(route.params.id))
 
 const voteEnabled = ref(false)
 const tagInput = ref('')
@@ -427,7 +431,7 @@ const buildPayload = () => {
   }
 }
 
-const onSubmit = () => {
+const onSubmit = async () => {
   if (voteEnabled.value) {
     const opts = form.vote.options.map((v) => v.trim()).filter(Boolean)
     if (opts.length < 2) {
@@ -437,10 +441,19 @@ const onSubmit = () => {
   }
 
   const payload = buildPayload()
-  console.log('submit payload:', payload)
-  console.log('imageFile:', imageFile.value)
 
-  router.back()
+  try {
+    await createTravelPost({
+      projectId: projectId.value,
+      dto: payload,
+      images: imageFile.value ? [imageFile.value] : [],
+    })
+
+    router.push(`/group/${projectId.value}`)
+  } catch (e) {
+    console.error('[CommunityCreate] submit error:', e)
+    alert('글 등록에 실패했어요.')
+  }
 }
 
 const goBack = () => router.back()
