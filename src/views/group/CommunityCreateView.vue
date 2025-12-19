@@ -46,7 +46,7 @@
                     maxlength="60"
                     type="text"
                     placeholder="예) 도쿄 라멘 맛집 추천"
-                    class="mt-2 w-full border-b border-slate-200 px-0 py-2.5 text-sm outline-none focus:border-slate-400"
+                    class="mt-2 w-full border pl-3 border-slate-200 px-0 py-2.5 text-sm outline-none focus:border-slate-400"
                   />
                 </div>
 

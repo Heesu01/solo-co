@@ -56,7 +56,8 @@
             <div class="flex items-center gap-2">
               <button
                 type="button"
-                class="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200"
+                class="cursor-pointer flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200"
+                @click="goToMyPage"
               >
                 <div
                   class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 via-indigo-400 to-violet-500 text-xs font-semibold text-white"
@@ -71,7 +72,7 @@
               <button
                 type="button"
                 @click="handleLogout"
-                class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
+                class="cursor-pointer rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
               >
                 로그아웃
               </button>
@@ -100,6 +101,10 @@ const userInitial = computed(() => {
 
 const isSoloActive = computed(() => route.path === '/solo' || route.path.startsWith('/solo/'))
 const isGroupActive = computed(() => route.path === '/group' || route.path.startsWith('/group/'))
+
+const goToMyPage = () => {
+  router.push('/mypage')
+}
 
 const handleLogout = async () => {
   try {
