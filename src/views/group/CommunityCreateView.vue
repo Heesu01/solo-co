@@ -52,7 +52,6 @@
 
                 <div class="my-6 h-px bg-slate-200"></div>
 
-                <!-- 내용 -->
                 <div>
                   <div class="flex items-end justify-between">
                     <label class="text-[12px] font-semibold text-slate-900">내용</label>
@@ -121,18 +120,21 @@
                   <div>
                     <div class="flex items-end justify-between">
                       <label class="text-[12px] font-semibold text-slate-900">사진</label>
-                      <p class="text-[11px] text-slate-400">선택</p>
+                      <p class="text-[11px] text-slate-400">
+                        {{ imageFiles.length }}/{{ MAX_IMAGES }}
+                      </p>
                     </div>
 
                     <input
                       ref="fileInputRef"
                       type="file"
                       accept="image/*"
+                      multiple
                       class="hidden"
-                      @change="onPickImage"
+                      @change="onPickImages"
                     />
 
-                    <div v-if="!imagePreview" class="mt-2">
+                    <div v-if="imageFiles.length === 0" class="mt-2">
                       <button
                         type="button"
                         class="w-full border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
@@ -141,43 +143,71 @@
                         사진 선택
                       </button>
                       <p class="mt-2 text-[12px] text-slate-400">
-                        목록에서 미리보기로 보여줄 사진을 추가할 수 있어요.
+                        최대 {{ MAX_IMAGES }}장까지 업로드할 수 있어요. (각 5MB 이하)
                       </p>
                     </div>
 
-                    <div v-else class="mt-2 overflow-hidden border border-slate-200">
-                      <div class="relative aspect-[16/10] bg-slate-100">
-                        <img :src="imagePreview" alt="preview" class="h-full w-full object-cover" />
+                    <div v-else class="mt-2 border border-slate-200">
+                      <!-- 썸네일 그리드 -->
+                      <div class="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <div
+                          v-for="(img, idx) in imagePreviews"
+                          :key="img.url + idx"
+                          class="overflow-hidden border border-slate-200"
+                        >
+                          <div class="relative aspect-[16/10] bg-slate-100">
+                            <img :src="img.url" alt="preview" class="h-full w-full object-cover" />
+                            <button
+                              type="button"
+                              class="absolute right-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[11px] font-semibold text-slate-700 shadow hover:bg-white"
+                              @click="removeImage(idx)"
+                              title="삭제"
+                            >
+                              ×
+                            </button>
+                          </div>
+
+                          <div class="px-3 py-2">
+                            <p class="truncate text-[12px] font-semibold text-slate-800">
+                              {{ img.name }}
+                            </p>
+                            <p class="text-[11px] text-slate-400">
+                              {{ prettyFileSize(img.size) }}
+                            </p>
+                          </div>
+                        </div>
                       </div>
 
-                      <div class="flex items-center justify-between px-3 py-2">
-                        <div class="min-w-0">
-                          <p class="truncate text-[12px] font-semibold text-slate-800">
-                            {{ imageFile?.name }}
-                          </p>
-                          <p class="text-[11px] text-slate-400">
-                            {{ prettyFileSize(imageFile?.size) }}
-                          </p>
-                        </div>
-
+                      <!-- 하단 액션 -->
+                      <div
+                        class="flex items-center justify-between border-t border-slate-200 px-3 py-2"
+                      >
+                        <p class="text-[12px] text-slate-500">
+                          대표 이미지는 자동으로 첫 번째 사진이야
+                        </p>
                         <div class="flex items-center gap-2">
                           <button
                             type="button"
                             class="border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
                             @click="openFilePicker"
+                            :disabled="imageFiles.length >= MAX_IMAGES"
                           >
-                            변경
+                            추가 선택
                           </button>
                           <button
                             type="button"
                             class="border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                            @click="removeImage"
+                            @click="removeAllImages"
                           >
-                            삭제
+                            전체 삭제
                           </button>
                         </div>
                       </div>
                     </div>
+
+                    <p v-if="imageError" class="mt-2 text-[12px] font-medium text-rose-600">
+                      {{ imageError }}
+                    </p>
                   </div>
                 </div>
 
@@ -324,35 +354,77 @@ const titleCount = computed(() => form.title?.length ?? 0)
 const contentCount = computed(() => form.content?.length ?? 0)
 
 const fileInputRef = ref(null)
-const imageFile = ref(null)
-const imagePreview = ref('')
+
+const MAX_IMAGES = 6
+const MAX_SIZE = 5 * 1024 * 1024
+
+const imageFiles = ref([])
+const imagePreviews = ref([])
+const imageError = ref('')
 
 const openFilePicker = () => fileInputRef.value?.click()
 
-const onPickImage = (e) => {
-  const file = e.target.files?.[0]
-  if (!file) return
+const addPreview = (file) => ({
+  url: URL.createObjectURL(file),
+  name: file.name,
+  size: file.size,
+})
 
-  if (file.size > 5 * 1024 * 1024) {
-    alert('이미지는 5MB 이하만 가능해요.')
-    e.target.value = ''
-    return
-  }
-
-  imageFile.value = file
-  if (imagePreview.value) URL.revokeObjectURL(imagePreview.value)
-  imagePreview.value = URL.createObjectURL(file)
+const revokeAllPreviews = () => {
+  imagePreviews.value.forEach((p) => {
+    if (p?.url) URL.revokeObjectURL(p.url)
+  })
 }
 
-const removeImage = () => {
-  if (imagePreview.value) URL.revokeObjectURL(imagePreview.value)
-  imagePreview.value = ''
-  imageFile.value = null
+const onPickImages = (e) => {
+  imageError.value = ''
+  const picked = Array.from(e.target.files || [])
+  if (picked.length === 0) return
+
+  const remain = MAX_IMAGES - imageFiles.value.length
+  const take = picked.slice(0, Math.max(0, remain))
+
+  if (picked.length > remain) {
+    imageError.value = `사진은 최대 ${MAX_IMAGES}장까지 가능해요.`
+  }
+
+  take.forEach((file) => {
+    if (file.size > MAX_SIZE) {
+      imageError.value = '이미지는 5MB 이하만 가능해요.'
+      return
+    }
+
+    const key = `${file.name}_${file.size}_${file.lastModified}`
+    const existed = imageFiles.value.some((f) => `${f.name}_${f.size}_${f.lastModified}` === key)
+    if (existed) return
+
+    imageFiles.value.push(file)
+    imagePreviews.value.push(addPreview(file))
+  })
+
+  e.target.value = ''
+}
+
+const removeImage = (idx) => {
+  const preview = imagePreviews.value[idx]
+  if (preview?.url) URL.revokeObjectURL(preview.url)
+
+  imageFiles.value.splice(idx, 1)
+  imagePreviews.value.splice(idx, 1)
+
+  if (fileInputRef.value) fileInputRef.value.value = ''
+}
+
+const removeAllImages = () => {
+  revokeAllPreviews()
+  imageFiles.value = []
+  imagePreviews.value = []
+  imageError.value = ''
   if (fileInputRef.value) fileInputRef.value.value = ''
 }
 
 onBeforeUnmount(() => {
-  if (imagePreview.value) URL.revokeObjectURL(imagePreview.value)
+  revokeAllPreviews()
 })
 
 watch(voteEnabled, (on) => {
@@ -446,7 +518,7 @@ const onSubmit = async () => {
     await createTravelPost({
       projectId: projectId.value,
       dto: payload,
-      images: imageFile.value ? [imageFile.value] : [],
+      images: imageFiles.value,
     })
 
     router.push(`/group/${projectId.value}`)
