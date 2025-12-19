@@ -119,3 +119,13 @@ export const fetchTravelPostVoteResult = ({ projectId, postId }) => {
 export const cancelTravelPostVote = ({ projectId, postId }) => {
   return api.delete(`/api/travels/${projectId}/posts/${postId}/vote/cancel`)
 }
+
+// 댓글 작성
+export const createTravelPostComment = ({ projectId, postId, content }) => {
+  return api.post(`/api/travels/${projectId}/posts/${postId}/comments`, { content })
+}
+
+// 댓글 삭제
+export const deleteTravelPostComment = ({ projectId, postId, commentId }) => {
+  return api.delete(`/api/travels/${projectId}/posts/${postId}/comments/${commentId}`)
+}

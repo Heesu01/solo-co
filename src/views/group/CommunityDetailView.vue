@@ -178,6 +178,13 @@
                       #{{ t }}
                     </span>
                   </div>
+
+                  <Comments
+                    :comments="Array.isArray(post.comments) ? post.comments : []"
+                    :submitting="commentSubmitting"
+                    @submit="handleCreateComment"
+                    @delete="handleDeleteComment"
+                  />
                 </div>
               </div>
             </section>
@@ -192,11 +199,14 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import GroupSidebar from '@/components/group/GroupSidebar.vue'
+import Comments from '@/components/group/Comments.vue'
 import {
   fetchTravelPostDetail,
   voteTravelPost,
   fetchTravelPostVoteResult,
   cancelTravelPostVote,
+  createTravelPostComment,
+  deleteTravelPostComment,
 } from '@/api/group'
 
 const router = useRouter()
@@ -213,6 +223,8 @@ const activeImageIndex = ref(0)
 
 const voteUiError = ref('')
 const pickedOptionId = ref(null)
+
+const commentSubmitting = ref(false)
 
 const initials = (name = '') => name.trim().slice(0, 1) || '?'
 
@@ -243,6 +255,18 @@ const normalizeDetail = (d) => {
     count: o.count ?? o.voteCount ?? 0,
   }))
 
+  const comments = Array.isArray(d?.comments) ? d.comments : []
+
+  const normalizedComments = comments.map((c) => ({
+    commentId: c.commentId,
+    content: c.content ?? '',
+    createdAt: c.createdAt ?? '',
+    updatedAt: c.updatedAt ?? '',
+    userName: c.userName ?? c.username ?? '익명',
+    userProfileImage: c.userProfileImage ?? c.profileImage ?? null,
+    canDelete: !!c.canDelete,
+  }))
+
   return {
     postId: d.postId,
     title: d.title,
@@ -262,7 +286,7 @@ const normalizeDetail = (d) => {
           hasVoted: !!vote.hasVoted,
         }
       : null,
-    comments: Array.isArray(d.comments) ? d.comments : [],
+    comments: normalizedComments,
   }
 }
 
@@ -385,6 +409,52 @@ const onCancelVote = async () => {
   } catch (e) {
     console.error('[VoteCancel] error:', e)
     voteUiError.value = '투표 취소에 실패했어요.'
+  }
+}
+
+const handleCreateComment = async ({ content }) => {
+  if (!content?.trim()) return
+  if (commentSubmitting.value) return
+
+  commentSubmitting.value = true
+  try {
+    await createTravelPostComment({
+      projectId: projectId.value,
+      postId: postId.value,
+      content: content.trim(),
+    })
+
+    await loadPost()
+  } catch (e) {
+    console.error('[CommentCreate] error:', e)
+    const status = e?.response?.status
+    if (status === 401) {
+      alert('로그인이 필요해요.')
+      return
+    }
+    alert('댓글 작성에 실패했어요.')
+    throw e
+  } finally {
+    commentSubmitting.value = false
+  }
+}
+
+const handleDeleteComment = async ({ commentId }) => {
+  if (!commentId) return
+
+  try {
+    await deleteTravelPostComment({
+      projectId: projectId.value,
+      postId: postId.value,
+      commentId,
+    })
+
+    await loadPost()
+  } catch (e) {
+    console.error('[CommentDelete] error:', e)
+
+    alert('댓글 삭제에 실패했어요.')
+    throw e
   }
 }
 </script>
