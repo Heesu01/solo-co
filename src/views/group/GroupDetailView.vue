@@ -22,7 +22,7 @@
                     />
                   </div>
                   <button
-                    class="bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+                    class="cursor-pointer bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
                     @click="goCreatePost"
                   >
                     글 작성
@@ -52,8 +52,8 @@
 
                       <div class="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
                         <span class="font-medium text-slate-700">{{ p.author }}</span>
-                        <span>·</span>
-                        <span>{{ p.date }}</span>
+                        <!-- <span>·</span> -->
+                        <!-- <span>{{ p.date }}</span> -->
                       </div>
 
                       <p class="mt-2 line-clamp-2 text-[12px] leading-relaxed text-slate-600">
@@ -93,57 +93,59 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import GroupSidebar from '@/components/group/GroupSidebar.vue'
+import { fetchTravelPosts } from '@/api/group'
 
 const router = useRouter()
 const route = useRoute()
 
-const posts = ref([
-  {
-    id: 101,
-    author: '희수',
-    date: '2025-01-03',
-    title: '도쿄 가면 꼭 먹어야 하는 라멘 3곳',
-    image:
-      'https://images.unsplash.com/photo-1526481280695-3c687fd5432c?q=80&w=1200&auto=format&fit=crop',
-    content:
-      '이치란도 좋지만… 이번에는 현지인 추천 위주로 3군데만 딱 정리해봤어! 위치/대기시간/가격대까지 같이 적어둘게.',
-    tags: ['라멘', '맛집', '추천'],
-  },
-  {
-    id: 102,
-    author: '지선',
-    date: '2025-01-04',
-    title: '디즈니 vs 해리포터 스튜디오, 하루에 가능?',
-    image:
-      'https://images.unsplash.com/photo-1526481280695-3c687fd5432c?q=80&w=1200&auto=format&fit=crop',
-    content: '둘 다 욕심나는데 무리일까? 이동시간이랑 입장시간 계산해보면… 의견 부탁!',
-    tags: ['테마파크', '일정', '토론'],
-  },
-  {
-    id: 103,
-    author: '희수',
-    date: '2025-01-05',
-    title: '공항에서 숙소까지 교통 정리 (나리타/하네다)',
-    image:
-      'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?q=80&w=1200&auto=format&fit=crop',
-    content:
-      '스카이라이너/리무진/전철 비교해서 표로 정리해봤어. 도착시간대에 따라 추천도 달아놨어.',
-    tags: ['교통', '공항', '정리'],
-  },
-])
+const projectId = computed(() => Number(route.params.id))
 
 const postQuery = ref('')
+const posts = ref([])
+const loading = ref(false)
+const errorMsg = ref('')
+
+const loadPosts = async () => {
+  if (!projectId.value) return
+  loading.value = true
+  errorMsg.value = ''
+
+  try {
+    const res = await fetchTravelPosts({
+      projectId: projectId.value,
+      query: postQuery.value.trim(),
+    })
+
+    posts.value = Array.isArray(res?.data) ? res.data : []
+  } catch (e) {
+    console.error('[CommunityList] fetch error:', e)
+    errorMsg.value = '게시글 목록을 불러오지 못했어요.'
+    posts.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadPosts)
+
+watch(postQuery, () => {
+  loadPosts()
+})
 
 const filteredPosts = computed(() => {
-  const q = postQuery.value.trim().toLowerCase()
-  if (!q) return posts.value
-  return posts.value.filter((p) => {
-    const hay = `${p.title} ${p.author} ${p.content} ${p.tags.join(' ')}`.toLowerCase()
-    return hay.includes(q)
-  })
+  return posts.value.map((p) => ({
+    postId: p.postId,
+    title: p.title,
+    content: p.contentPreview,
+    author: p.authorName,
+    authorProfileImage: p.authorProfileImage,
+    date: '',
+    tags: p.tags || [],
+    image: Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : '',
+  }))
 })
 
 const goCreatePost = () => {

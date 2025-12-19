@@ -90,3 +90,10 @@ export const createTravelPost = ({ projectId, dto, images = [] }) => {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
 }
+
+// 커뮤니티 글 목록 조회
+export const fetchTravelPosts = ({ projectId, query = '' } = {}) => {
+  return api.get(`/api/travels/${projectId}/posts`, {
+    params: query ? { query } : undefined,
+  })
+}
