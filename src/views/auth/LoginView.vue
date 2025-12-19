@@ -94,7 +94,8 @@
 
                 <button
                   @click="handleLogin"
-                  class="mt-5 flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 text-sm font-semibold text-white shadow-md transition hover:from-sky-400 hover:to-indigo-500"
+                  :disabled="isDisabled"
+                  class="cursor-pointer mt-5 flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-start to-end text-sm font-semibold text-white shadow-md transition hover:from-start-hover hover:to-end-hover disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   로그인
                 </button>
@@ -115,23 +116,30 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { login } from '@/api/auth'
-import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
-const router = useRouter()
 
+const router = useRouter()
+const route = useRoute()
 const { setAuth } = useAuth()
+
+const isDisabled = computed(() => {
+  return email.value.trim() === '' || password.value.trim() === ''
+})
 
 const togglePassword = () => {
   showPassword.value = !showPassword.value
 }
 
 const handleLogin = async () => {
+  if (isDisabled.value) return
+
   try {
     const res = await login({
       username: email.value,
@@ -149,8 +157,14 @@ const handleLogin = async () => {
 
     console.log('로그인 성공:', res)
 
-    router.push('/')
+    const redirect = route.query.redirect
+    if (typeof redirect === 'string' && redirect.length > 0) {
+      router.replace(redirect)
+    } else {
+      router.replace('/')
+    }
   } catch (error) {
+    console.error('로그인 실패:', error)
     alert(error.response?.data?.message || '로그인에 실패했습니다.')
   }
 }

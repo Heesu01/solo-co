@@ -16,15 +16,20 @@
           <nav class="hidden items-center gap-10 text-sm font-medium text-slate-600 md:flex">
             <RouterLink
               to="/solo"
-              class="transition-colors hover:text-slate-900"
-              active-class="text-slate-900 font-semibold"
+              :class="[
+                'transition-colors hover:text-slate-900',
+                isSoloActive ? 'text-slate-900 font-semibold' : '',
+              ]"
             >
               개인 여행
             </RouterLink>
+
             <RouterLink
               to="/group"
-              class="transition-colors hover:text-slate-900"
-              active-class="text-slate-900 font-semibold"
+              :class="[
+                'transition-colors hover:text-slate-900',
+                isGroupActive ? 'text-slate-900 font-semibold' : '',
+              ]"
             >
               그룹 여행
             </RouterLink>
@@ -51,7 +56,8 @@
             <div class="flex items-center gap-2">
               <button
                 type="button"
-                class="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200"
+                class="cursor-pointer flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200"
+                @click="goToMyPage"
               >
                 <div
                   class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 via-indigo-400 to-violet-500 text-xs font-semibold text-white"
@@ -66,7 +72,7 @@
               <button
                 type="button"
                 @click="handleLogout"
-                class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
+                class="cursor-pointer rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
               >
                 로그아웃
               </button>
@@ -80,17 +86,25 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { logout } from '@/api/auth'
 
 const { isAuthenticated, userName, clearAuth } = useAuth()
 const router = useRouter()
+const route = useRoute()
 
 const userInitial = computed(() => {
   if (!userName.value) return '?'
   return userName.value.trim().charAt(0).toUpperCase()
 })
+
+const isSoloActive = computed(() => route.path === '/solo' || route.path.startsWith('/solo/'))
+const isGroupActive = computed(() => route.path === '/group' || route.path.startsWith('/group/'))
+
+const goToMyPage = () => {
+  router.push('/mypage')
+}
 
 const handleLogout = async () => {
   try {
@@ -98,7 +112,6 @@ const handleLogout = async () => {
   } catch (e) {
     console.warn('서버 로그아웃 실패 — 그래도 로컬 로그아웃 진행합니다.')
   }
-
   clearAuth()
   router.push('/login')
 }

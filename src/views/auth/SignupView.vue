@@ -170,7 +170,7 @@
 
                 <button
                   type="button"
-                  class="mt-6 flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 text-sm font-semibold text-white shadow-md transition hover:from-sky-400 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  class="mt-6 flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-start to-end text-sm font-semibold text-white shadow-md transition hover:from-start-hover hover:to-end-hover disabled:cursor-not-allowed disabled:opacity-60"
                   :disabled="!canSubmit"
                   @click="handleSignup"
                 >
