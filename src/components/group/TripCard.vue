@@ -133,7 +133,7 @@
                 <p>카드에 보이는 표지 이미지를 바꾸고 싶다면 아래 버튼을 눌러주세요.</p>
                 <button
                   type="button"
-                  class="mt-1 self-start rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-slate-100"
+                  class="cursor-pointer mt-1 self-start rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-slate-100"
                   @click="triggerEditFileInput"
                 >
                   이미지 변경
@@ -194,14 +194,14 @@
             <div class="mt-2 flex gap-2 pt-1">
               <button
                 type="button"
-                class="h-9 flex-1 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                class="cursor-pointer h-9 flex-1 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-600 hover:bg-slate-100"
                 @click="closeModals"
               >
                 취소
               </button>
               <button
                 type="submit"
-                class="h-9 flex-1 rounded-xl bg-slate-900 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-40"
+                class="cursor-pointer h-9 flex-1 rounded-xl bg-slate-900 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-40"
                 :disabled="!canSaveEdit"
               >
                 변경 사항 저장
@@ -232,7 +232,7 @@
             </span>
             <button
               type="button"
-              class="shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-[11px] font-medium text-slate-50 hover:bg-slate-800"
+              class="cursor-pointer shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-[11px] font-medium text-slate-50 hover:bg-slate-800"
               @click="copyShareUrl"
             >
               복사
@@ -240,7 +240,7 @@
           </div>
 
           <button
-            class="mt-6 w-full rounded-xl bg-slate-100 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-200"
+            class="cursor-pointer mt-6 w-full rounded-xl bg-slate-100 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-200"
             @click="closeModals"
           >
             닫기

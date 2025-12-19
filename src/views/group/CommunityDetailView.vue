@@ -111,7 +111,7 @@
                     </div>
                   </div>
 
-                  <div v-if="post.vote" class="border border-slate-200 p-4">
+                  <div v-if="post.vote" class="border border-slate-200 p-4 rounded-lg">
                     <div class="flex items-start justify-between gap-3">
                       <div class="min-w-0">
                         <p class="mt-1 text-[13px] font-semibold text-slate-800">
@@ -146,7 +146,7 @@
                         v-for="opt in post.vote.options"
                         :key="opt.optionId"
                         type="button"
-                        class="w-full border border-slate-200 px-3 py-2 text-left text-[12px] hover:bg-slate-50"
+                        class="w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-[12px] hover:bg-slate-50"
                         :class="post.vote.hasVoted ? 'cursor-default' : 'cursor-pointer'"
                         @click="onPickVote(opt.optionId)"
                       >

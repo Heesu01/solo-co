@@ -45,7 +45,7 @@
           <div class="flex flex-col items-end gap-4 lg:min-w-[260px]">
             <button
               type="button"
-              class="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-sky-600 shadow-lg transition hover:bg-white"
+              class="cursor-pointer inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-sky-600 shadow-lg transition hover:bg-white"
               @click="handleCreateGroup"
             >
               <span
@@ -107,7 +107,7 @@
 
           <div class="flex items-center gap-2 text-xs">
             <button
-              class="rounded-full border px-3 py-1.5"
+              class="cursor-pointer rounded-full border px-3 py-1.5"
               :class="
                 sortKey === 'recent'
                   ? 'border-sky-400 text-sky-600'
@@ -119,7 +119,7 @@
             </button>
 
             <button
-              class="rounded-full border px-3 py-1.5"
+              class="cursor-pointer rounded-full border px-3 py-1.5"
               :class="
                 sortKey === 'old'
                   ? 'border-sky-400 text-sky-600'
@@ -131,7 +131,7 @@
             </button>
 
             <button
-              class="rounded-full border px-3 py-1.5"
+              class="cursor-pointer rounded-full border px-3 py-1.5"
               :class="
                 sortKey === 'status'
                   ? 'border-sky-400 text-sky-600'
@@ -170,7 +170,7 @@
 
           <button
             type="button"
-            class="flex min-h-[180px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50/60 text-xs text-slate-400 transition hover:border-sky-400 hover:bg-sky-50/50 hover:text-sky-600"
+            class="cursor-pointer flex min-h-[180px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50/60 text-xs text-slate-400 transition hover:border-sky-400 hover:bg-sky-50/50 hover:text-sky-600"
             @click="handleCreateGroup"
           >
             <span

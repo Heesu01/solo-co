@@ -92,7 +92,7 @@
             </div>
 
             <button
-              class="rounded-md px-2 py-1 text-[11px] font-medium text-slate-600 opacity-0 transition group-hover:opacity-100 hover:bg-white hover:text-rose-600"
+              class="cursor-pointer rounded-md px-2 py-1 text-[11px] font-medium text-slate-600 opacity-0 transition group-hover:opacity-100 hover:bg-white hover:text-rose-600"
               type="button"
               @click.stop="onRemoveMember(m)"
             >

@@ -9,7 +9,7 @@
             <section class="border border-slate-200 bg-white">
               <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200">
                 <div>
-                  <h2 class="text-sm font-semibold text-slate-900">커뮤니티</h2>
+                  <span class="tracking-[0.18em] font-semibold">COMMUNITY</span>
                   <p class="mt-0.5 text-[12px] text-slate-500">게시글로 사진·정보를 공유해요.</p>
                 </div>
 

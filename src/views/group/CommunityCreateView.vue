@@ -81,7 +81,7 @@
                         v-for="(t, idx) in form.tags"
                         :key="t + idx"
                         type="button"
-                        class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-200"
+                        class="cursor-pointer inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-200"
                         @click="removeTag(idx)"
                         title="삭제"
                       >
@@ -105,7 +105,7 @@
 
                       <button
                         type="button"
-                        class="shrink-0 border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        class="cursor-pointer shrink-0 border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                         @click="addTag"
                       >
                         추가
@@ -159,7 +159,7 @@
                             <img :src="img.url" alt="preview" class="h-full w-full object-cover" />
                             <button
                               type="button"
-                              class="absolute right-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[11px] font-semibold text-slate-700 shadow hover:bg-white"
+                              class="cursor-pointer absolute right-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[11px] font-semibold text-slate-700 shadow hover:bg-white"
                               @click="removeImage(idx)"
                               title="삭제"
                             >
@@ -188,7 +188,7 @@
                         <div class="flex items-center gap-2">
                           <button
                             type="button"
-                            class="border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                            class="cursor-pointer border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
                             @click="openFilePicker"
                             :disabled="imageFiles.length >= MAX_IMAGES"
                           >
@@ -196,7 +196,7 @@
                           </button>
                           <button
                             type="button"
-                            class="border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                            class="cursor-pointer border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
                             @click="removeAllImages"
                           >
                             전체 삭제
@@ -223,7 +223,7 @@
                     <label
                       class="inline-flex items-center gap-2 text-[12px] font-semibold text-slate-700"
                     >
-                      <input type="checkbox" v-model="voteEnabled" class="h-4 w-4" />
+                      <input type="checkbox" v-model="voteEnabled" class="cursor-pointer h-4 w-4" />
                       투표 추가
                     </label>
                   </div>
@@ -246,7 +246,11 @@
                       <label
                         class="inline-flex items-center gap-2 text-[12px] font-semibold text-slate-700"
                       >
-                        <input type="checkbox" v-model="form.vote.multipleChoice" class="h-4 w-4" />
+                        <input
+                          type="checkbox"
+                          v-model="form.vote.multipleChoice"
+                          class="cursor-pointer h-4 w-4"
+                        />
                         허용
                       </label>
                     </div>
@@ -277,7 +281,7 @@
                           />
                           <button
                             type="button"
-                            class="border border-slate-200 bg-white px-3 py-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                            class="cursor-pointer border border-slate-200 bg-white px-3 py-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
                             @click="removeOption(idx)"
                             :disabled="form.vote.options.length <= 2"
                             title="최소 2개"

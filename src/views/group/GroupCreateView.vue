@@ -46,7 +46,7 @@
 
               <div
                 v-else
-                class="absolute inset-0 flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100"
+                class="cursor-pointer absolute inset-0 flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100"
               >
                 <div
                   class="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-white/70 shadow-sm"
