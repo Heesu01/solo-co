@@ -114,7 +114,6 @@
                   <div v-if="post.vote" class="border border-slate-200 p-4">
                     <div class="flex items-start justify-between gap-3">
                       <div class="min-w-0">
-                        <p class="text-[12px] font-semibold text-slate-900">투표</p>
                         <p class="mt-1 text-[13px] font-semibold text-slate-800">
                           {{ post.vote.question }}
                         </p>
@@ -123,12 +122,23 @@
                         </p>
                       </div>
 
-                      <span
-                        v-if="post.vote.hasVoted"
-                        class="shrink-0 bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600"
-                      >
-                        참여 완료
-                      </span>
+                      <div class="flex shrink-0 flex-col items-end gap-1">
+                        <span
+                          v-if="post.vote.hasVoted"
+                          class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700"
+                        >
+                          참여 완료
+                        </span>
+
+                        <button
+                          v-if="post.vote.hasVoted"
+                          type="button"
+                          class="mr-1 cursor-pointer text-[11px] font-medium text-slate-400 hover:text-slate-700 underline-offset-2 hover:underline"
+                          @click="onCancelVote"
+                        >
+                          투표 취소
+                        </button>
+                      </div>
                     </div>
 
                     <div class="mt-4 space-y-2">
@@ -182,7 +192,12 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import GroupSidebar from '@/components/group/GroupSidebar.vue'
-import { fetchTravelPostDetail } from '@/api/group'
+import {
+  fetchTravelPostDetail,
+  voteTravelPost,
+  fetchTravelPostVoteResult,
+  cancelTravelPostVote,
+} from '@/api/group'
 
 const router = useRouter()
 const route = useRoute()
@@ -210,8 +225,24 @@ const isValidIds = computed(() => {
   )
 })
 
+const pickPayload = (res) => {
+  const a = res?.data ?? res
+  const b = a?.data ?? a
+  return b
+}
+
 const normalizeDetail = (d) => {
   activeImageIndex.value = 0
+
+  const vote = d?.vote
+  const voteOptions = Array.isArray(vote?.options) ? vote.options : []
+
+  const normalizedOptions = voteOptions.map((o) => ({
+    optionId: o.optionId,
+    text: o.text ?? o.content ?? o.optionContent ?? '',
+    count: o.count ?? o.voteCount ?? 0,
+  }))
+
   return {
     postId: d.postId,
     title: d.title,
@@ -222,16 +253,43 @@ const normalizeDetail = (d) => {
     createdAt: d.createdAt,
     tags: d.tags || [],
     images: Array.isArray(d.images) ? d.images : [],
-    vote: d.vote
+    vote: vote
       ? {
-          voteId: d.vote.voteId,
-          question: d.vote.question,
-          options: Array.isArray(d.vote.options) ? d.vote.options : [],
-          totalVotes: d.vote.totalVotes ?? 0,
-          hasVoted: !!d.vote.hasVoted,
+          voteId: vote.voteId,
+          question: vote.question,
+          options: normalizedOptions,
+          totalVotes: vote.totalVotes ?? 0,
+          hasVoted: !!vote.hasVoted,
         }
       : null,
     comments: Array.isArray(d.comments) ? d.comments : [],
+  }
+}
+
+const loadVoteResult = async () => {
+  if (!post.value?.vote) return
+
+  try {
+    const res = await fetchTravelPostVoteResult({
+      projectId: projectId.value,
+      postId: postId.value,
+    })
+
+    const payload = pickPayload(res)
+    if (!payload) return
+
+    const resultOptions = Array.isArray(payload.options) ? payload.options : []
+
+    const normalized = resultOptions.map((o) => ({
+      optionId: o.optionId,
+      text: o.content ?? o.text ?? '',
+      count: o.voteCount ?? o.count ?? 0,
+    }))
+
+    post.value.vote.totalVotes = payload.totalVotes ?? 0
+    post.value.vote.options = normalized
+  } catch (e) {
+    console.error('[VoteResult] fetch error:', e)
   }
 }
 
@@ -244,6 +302,7 @@ const loadPost = async () => {
 
   loading.value = true
   errorMsg.value = ''
+  voteUiError.value = ''
 
   try {
     const res = await fetchTravelPostDetail({
@@ -251,7 +310,7 @@ const loadPost = async () => {
       postId: postId.value,
     })
 
-    const data = res?.data ?? null
+    const data = pickPayload(res) ?? null
     if (!data) {
       post.value = null
       errorMsg.value = '게시글을 찾지 못했어요.'
@@ -259,6 +318,10 @@ const loadPost = async () => {
     }
 
     post.value = normalizeDetail(data)
+
+    if (post.value?.vote) {
+      await loadVoteResult()
+    }
   } catch (e) {
     console.error('[CommunityDetail] fetch error:', e)
     errorMsg.value = '게시글을 불러오지 못했어요.'
@@ -269,7 +332,6 @@ const loadPost = async () => {
 }
 
 onMounted(loadPost)
-
 watch([projectId, postId], loadPost)
 
 const goBack = () => router.back()
@@ -280,16 +342,49 @@ const votePercent = (count) => {
   return Math.round((count / total) * 100)
 }
 
-const onPickVote = () => {
-  //
+const onPickVote = async (optionId) => {
+  voteUiError.value = ''
+
+  if (!post.value?.vote) return
+  if (post.value.vote.hasVoted) return
+
+  if (loading.value) return
+
+  try {
+    pickedOptionId.value = optionId
+
+    await voteTravelPost({
+      projectId: projectId.value,
+      postId: postId.value,
+      optionId,
+    })
+
+    await loadVoteResult()
+
+    post.value.vote.hasVoted = true
+  } catch (e) {
+    console.error('[Vote] error:', e)
+    voteUiError.value = '투표에 실패했어요. 잠시 후 다시 시도해 주세요.'
+  }
 }
 
-// const copyLink = async () => {
-//   try {
-//     await navigator.clipboard.writeText(window.location.href)
-//     alert('링크를 복사했어요.')
-//   } catch (e) {
-//     alert('복사에 실패했어요.')
-//   }
-// }
+const onCancelVote = async () => {
+  voteUiError.value = ''
+  if (!post.value?.vote) return
+  if (!post.value.vote.hasVoted) return
+
+  try {
+    await cancelTravelPostVote({
+      projectId: projectId.value,
+      postId: postId.value,
+    })
+
+    await loadVoteResult()
+    post.value.vote.hasVoted = false
+    pickedOptionId.value = null
+  } catch (e) {
+    console.error('[VoteCancel] error:', e)
+    voteUiError.value = '투표 취소에 실패했어요.'
+  }
+}
 </script>

@@ -102,3 +102,20 @@ export const fetchTravelPosts = ({ projectId, query = '' } = {}) => {
 export const fetchTravelPostDetail = ({ projectId, postId }) => {
   return api.get(`/api/travels/${projectId}/posts/${postId}`)
 }
+
+// 투표 참여
+export const voteTravelPost = ({ projectId, postId, optionId }) => {
+  return api.post(`/api/travels/${projectId}/posts/${postId}/vote`, {
+    optionId,
+  })
+}
+
+// 투표 결과 조회
+export const fetchTravelPostVoteResult = ({ projectId, postId }) => {
+  return api.get(`/api/travels/${projectId}/posts/${postId}/vote/result`)
+}
+
+// 투표 취소
+export const cancelTravelPostVote = ({ projectId, postId }) => {
+  return api.delete(`/api/travels/${projectId}/posts/${postId}/vote/cancel`)
+}
