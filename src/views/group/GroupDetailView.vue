@@ -30,7 +30,12 @@
                 </div>
               </div>
 
-              <div>
+              <div v-if="loading" class="p-12 text-center text-slate-500">불러오는 중...</div>
+              <div v-else-if="errorMsg" class="p-12 text-center text-rose-600">
+                {{ errorMsg }}
+              </div>
+
+              <div v-else>
                 <div v-if="filteredPosts.length === 0" class="p-12 text-center text-slate-500">
                   <p class="text-sm font-semibold text-slate-800">게시글이 없어요</p>
                   <p class="mt-1 text-[12px]">첫 글을 작성해보세요.</p>
@@ -39,9 +44,9 @@
                 <ul v-else class="divide-y divide-slate-200">
                   <li
                     v-for="p in filteredPosts"
-                    :key="p.id"
+                    :key="p.postId"
                     class="group flex items-start gap-4 px-4 py-4 cursor-pointer hover:bg-slate-50"
-                    @click="goPostDetail(p.id)"
+                    @click="goPostDetail(p.postId)"
                   >
                     <div class="min-w-0 flex-1">
                       <h3
@@ -93,7 +98,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import GroupSidebar from '@/components/group/GroupSidebar.vue'
 import { fetchTravelPosts } from '@/api/group'
@@ -108,6 +113,16 @@ const posts = ref([])
 const loading = ref(false)
 const errorMsg = ref('')
 
+const normalizeListItem = (p) => ({
+  postId: p.postId,
+  title: p.title,
+  content: p.contentPreview,
+  author: p.authorName,
+  authorProfileImage: p.authorProfileImage,
+  tags: p.tags || [],
+  image: Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : '',
+})
+
 const loadPosts = async () => {
   if (!projectId.value) return
   loading.value = true
@@ -119,7 +134,8 @@ const loadPosts = async () => {
       query: postQuery.value.trim(),
     })
 
-    posts.value = Array.isArray(res?.data) ? res.data : []
+    const list = Array.isArray(res?.data) ? res.data : []
+    posts.value = list
   } catch (e) {
     console.error('[CommunityList] fetch error:', e)
     errorMsg.value = '게시글 목록을 불러오지 못했어요.'
@@ -131,22 +147,16 @@ const loadPosts = async () => {
 
 onMounted(loadPosts)
 
+let t = null
 watch(postQuery, () => {
-  loadPosts()
+  if (t) clearTimeout(t)
+  t = setTimeout(() => loadPosts(), 250)
+})
+onBeforeUnmount(() => {
+  if (t) clearTimeout(t)
 })
 
-const filteredPosts = computed(() => {
-  return posts.value.map((p) => ({
-    postId: p.postId,
-    title: p.title,
-    content: p.contentPreview,
-    author: p.authorName,
-    authorProfileImage: p.authorProfileImage,
-    date: '',
-    tags: p.tags || [],
-    image: Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : '',
-  }))
-})
+const filteredPosts = computed(() => posts.value.map(normalizeListItem))
 
 const goCreatePost = () => {
   router.push(`/group/${route.params.id}/create`)

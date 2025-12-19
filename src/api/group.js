@@ -97,3 +97,8 @@ export const fetchTravelPosts = ({ projectId, query = '' } = {}) => {
     params: query ? { query } : undefined,
   })
 }
+
+// 커뮤니티 글 상세 조회
+export const fetchTravelPostDetail = ({ projectId, postId }) => {
+  return api.get(`/api/travels/${projectId}/posts/${postId}`)
+}

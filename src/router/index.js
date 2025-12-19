@@ -11,6 +11,7 @@ import GroupDetailView from '@/views/group/GroupDetailView.vue'
 import CommunityCreateView from '@/views/group/CommunityCreateView.vue'
 import InviteJoinView from '@/views/group/InviteJoinView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
+import CommunityDetailView from '@/views/group/CommunityDetailView.vue'
 
 const routes = [
   { path: '/', name: 'home', component: HomeView },
@@ -24,6 +25,7 @@ const routes = [
   { path: '/group/create', name: 'group-create', component: GroupCreateView },
   { path: '/group/:id', name: 'group-detail', component: GroupDetailView },
   { path: '/group/:id/create', name: 'CommunityCreate', component: CommunityCreateView },
+  { path: '/group/:id/community/:postId', name: 'CommunityDetail', component: CommunityDetailView },
   { path: '/invite/:code', name: 'InviteJoin', component: InviteJoinView },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
 ]
