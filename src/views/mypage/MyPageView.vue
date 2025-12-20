@@ -10,7 +10,12 @@
             <h1 class="mt-1 text-[18px] font-semibold text-slate-900">마이페이지</h1>
           </div>
 
-          <div class="p-6">
+          <div v-if="meLoading" class="p-10 text-center text-slate-500">불러오는 중...</div>
+          <div v-else-if="meError" class="p-10 text-center text-rose-600">
+            {{ meError }}
+          </div>
+
+          <div v-else class="p-6">
             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div class="flex items-center gap-4">
                 <div class="h-14 w-14 overflow-hidden rounded-full bg-white ring-1 ring-slate-200">
@@ -29,38 +34,42 @@
                 </div>
 
                 <div class="min-w-0">
-                  <p class="truncate text-[15px] font-semibold text-slate-900">{{ me.name }}</p>
-                  <p class="mt-0.5 truncate text-[12px] text-slate-500">{{ me.email }}</p>
+                  <p class="truncate text-[15px] font-semibold text-slate-900">
+                    {{ me.name || '-' }}
+                  </p>
+                  <p class="mt-0.5 truncate text-[12px] text-slate-500">
+                    {{ me.email || '-' }}
+                  </p>
                   <p class="mt-1 text-[12px] text-slate-500">
-                    가입일 <span class="text-slate-400">·</span> {{ me.createdAt }}
-                    <span class="text-slate-400">·</span> {{ me.role }}
+                    아이디 <span class="text-slate-400">·</span> {{ me.id || '-' }}
                   </p>
                 </div>
               </div>
-
               <div class="flex gap-2 md:justify-end">
                 <button
                   type="button"
-                  class="cursor-pointer rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  class="cursor-pointer rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="meLoading"
                   @click="openEdit"
                 >
                   정보 수정
                 </button>
+
                 <button
                   type="button"
-                  class="cursor-pointer rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"
-                  @click="openWithdraw"
+                  class="cursor-pointer rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="withdrawSubmitting"
+                  @click="confirmWithdraw"
                 >
-                  탈퇴
+                  {{ withdrawSubmitting ? '처리 중...' : '탈퇴' }}
                 </button>
               </div>
             </div>
 
-            <div class="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div class="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <InfoField label="아이디" :value="me.id" />
               <InfoField label="이름" :value="me.name" />
               <InfoField label="이메일" :value="me.email" />
-              <InfoField label="가입일" :value="me.createdAt" />
-              <InfoField label="권한" :value="me.role" />
             </div>
           </div>
         </section>
@@ -138,22 +147,8 @@
               </div>
             </div>
 
-            <div
-              v-if="filteredProjects.length === 0"
-              class="rounded-lg border border-dashed border-slate-200 p-10 text-center"
-            >
-              <p class="text-sm font-semibold text-slate-900">프로젝트가 없어요</p>
-              <p class="mt-1 text-[13px] text-slate-500">
-                새 프로젝트를 만들면 여기에서 한눈에 확인할 수 있어요.
-              </p>
-              <div class="mt-4 flex justify-center gap-2">
-                <button
-                  type="button"
-                  class="cursor-pointer rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800"
-                >
-                  프로젝트 만들기
-                </button>
-              </div>
+            <div v-if="filteredProjects.length === 0" class="rounded-lg p-4">
+              <p class="text-sm text-slate-500">프로젝트가 없어요.</p>
             </div>
 
             <div v-else class="grid gap-4 md:grid-cols-2">
@@ -195,9 +190,8 @@
 
                 <div class="mt-4 flex items-center justify-between">
                   <p class="text-[12px] text-slate-500">멤버 {{ p.membersCount }}명</p>
+                  <p class="text-[12px] text-slate-500">진행도 {{ p.progress }}%</p>
                 </div>
-
-                <p class="mt-3 text-[12px] text-slate-400">클릭해서 프로젝트로 이동</p>
               </article>
             </div>
           </div>
@@ -206,12 +200,14 @@
         <div
           v-if="editOpen"
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
-          @click.self="editOpen = false"
+          @click.self="closeEdit"
         >
           <div class="w-full max-w-lg border border-slate-200 bg-white">
             <div class="border-b border-slate-200 px-5 py-4">
               <p class="text-sm font-semibold text-slate-900">회원 정보 수정</p>
-              <p class="mt-1 text-[12px] text-slate-500">UI만 먼저. 저장 누르면 API 연결하면 됨.</p>
+              <p class="mt-1 text-[12px] text-slate-500">
+                이름/이메일/비밀번호/프로필 이미지를 수정할 수 있어요.
+              </p>
             </div>
 
             <div class="p-5 space-y-4">
@@ -234,70 +230,101 @@
               </div>
 
               <div>
-                <p class="text-[12px] font-semibold text-slate-700">프로필 이미지 URL</p>
+                <p class="text-[12px] font-semibold text-slate-700">비밀번호</p>
                 <input
-                  v-model="editForm.profileImage"
-                  type="text"
-                  placeholder="없으면 비워두기"
+                  v-model="editForm.password"
+                  type="password"
+                  placeholder="변경할 때만 입력"
                   class="mt-1 w-full border border-slate-200 px-3 py-2 text-sm outline-none placeholder:text-slate-400 focus:border-slate-400"
                 />
               </div>
+
+              <div>
+                <p class="text-[12px] font-semibold text-slate-700">프로필 이미지</p>
+
+                <div class="mt-2 flex items-center gap-3">
+                  <div
+                    class="h-12 w-12 overflow-hidden rounded-full ring-1 ring-slate-200 bg-white"
+                  >
+                    <img
+                      v-if="previewUrl"
+                      :src="previewUrl"
+                      alt=""
+                      class="h-full w-full object-cover"
+                    />
+                    <img
+                      v-else-if="me.profileImage"
+                      :src="me.profileImage"
+                      alt=""
+                      class="h-full w-full object-cover"
+                    />
+                    <div
+                      v-else
+                      class="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-500"
+                    >
+                      {{ initials(me.name) }}
+                    </div>
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-[12px] font-semibold text-slate-800">
+                      {{ pickedFileName || '선택된 파일 없음' }}
+                    </p>
+                    <p class="mt-0.5 text-[11px] text-slate-500">
+                      파일을 선택하지 않으면 기존 이미지를 유지해요.
+                    </p>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      class="cursor-pointer rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      @click="openFilePicker"
+                    >
+                      파일 선택
+                    </button>
+
+                    <button
+                      v-if="pickedFile"
+                      type="button"
+                      class="cursor-pointer rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                      @click="clearPickedFile"
+                    >
+                      선택 해제
+                    </button>
+                  </div>
+
+                  <input
+                    ref="fileInputRef"
+                    type="file"
+                    accept="image/*"
+                    class="hidden"
+                    @change="onPickFile"
+                  />
+                </div>
+              </div>
+
+              <p v-if="editError" class="text-[12px] font-medium text-rose-600">
+                {{ editError }}
+              </p>
             </div>
 
             <div class="border-t border-slate-200 px-5 py-4 flex justify-end gap-2">
               <button
                 type="button"
                 class="cursor-pointer rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                @click="editOpen = false"
+                :disabled="editSubmitting"
+                @click="closeEdit"
               >
                 취소
               </button>
               <button
                 type="button"
-                class="cursor-pointer rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800"
-                @click="applyEditUI"
+                class="cursor-pointer rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="editSubmitting"
+                @click="submitEdit"
               >
-                저장(UI)
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div
-          v-if="withdrawOpen"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
-          @click.self="withdrawOpen = false"
-        >
-          <div class="w-full max-w-lg border border-rose-200 bg-white">
-            <div class="border-b border-rose-200 px-5 py-4">
-              <p class="text-sm font-semibold text-rose-700">회원 탈퇴</p>
-              <p class="mt-1 text-[12px] text-slate-500">정말 탈퇴할까요? (UI만 먼저)</p>
-            </div>
-
-            <div class="p-5">
-              <div class="rounded-lg bg-rose-50 p-4">
-                <p class="text-sm font-semibold text-rose-700">주의</p>
-                <ul class="mt-2 list-disc pl-5 text-[13px] text-rose-700 space-y-1">
-                  <li>탈퇴 시 데이터 처리 정책(프로젝트/게시글/댓글) 확인 필요</li>
-                  <li>실수 방지용 확인 문구 입력 UX 추천</li>
-                </ul>
-              </div>
-            </div>
-
-            <div class="border-t border-rose-200 px-5 py-4 flex justify-end gap-2">
-              <button
-                type="button"
-                class="cursor-pointer rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                @click="withdrawOpen = false"
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                class="cursor-pointer rounded-full bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-700"
-                @click="withdrawOpen = false"
-              >
-                탈퇴(UI)
+                {{ editSubmitting ? '저장 중...' : '저장' }}
               </button>
             </div>
           </div>
@@ -308,23 +335,53 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { fetchMyProfile, updateMyProfile, deleteMyAccount } from '@/api/my'
 
 const router = useRouter()
 
+const pickPayload = (res) => {
+  const a = res?.data ?? res
+  const b = a?.data ?? a
+  return b
+}
+
+const meLoading = ref(false)
+const meError = ref('')
+
 const me = reactive({
-  name: '희수',
-  email: 'heesu@example.com',
+  id: '',
+  name: '',
+  email: '',
   profileImage: '',
-  createdAt: '2025-12-01',
-  role: 'USER',
 })
 
 const initials = (name = '') => {
   const t = (name ?? '').toString().trim()
   return t.slice(0, 1) || '?'
 }
+
+const loadMe = async () => {
+  meLoading.value = true
+  meError.value = ''
+  try {
+    const res = await fetchMyProfile()
+    const data = pickPayload(res)
+
+    me.id = data?.id ?? ''
+    me.name = data?.name ?? ''
+    me.email = data?.email ?? ''
+    me.profileImage = data?.profileImage ?? ''
+  } catch (e) {
+    console.error('[MyPage] loadMe error:', e)
+    meError.value = '회원 정보를 불러오지 못했어요.'
+  } finally {
+    meLoading.value = false
+  }
+}
+
+onMounted(loadMe)
 
 const projectMode = ref('ALL')
 const q = ref('')
@@ -339,6 +396,7 @@ const projects = ref([
     startDate: '2026-02-10',
     endDate: '2026-02-13',
     membersCount: 4,
+    progress: 52,
     createdAt: '2025-12-05',
   },
   {
@@ -349,6 +407,7 @@ const projects = ref([
     startDate: '2026-02-20',
     endDate: '2026-02-22',
     membersCount: 1,
+    progress: 18,
     createdAt: '2025-12-07',
   },
 ])
@@ -382,40 +441,141 @@ const filteredProjects = computed(() => {
 
 const goProject = (p) => {
   if (!p?.projectId) return
-
   if (p.projectType === 'GROUP') {
     router.push(`/group/${p.projectId}`)
     return
   }
-
   router.push(`/solo/${p.projectId}`)
 }
 
 const editOpen = ref(false)
-const withdrawOpen = ref(false)
+const editSubmitting = ref(false)
+const editError = ref('')
 
 const editForm = reactive({
-  name: me.name,
-  email: me.email,
-  profileImage: me.profileImage,
+  name: '',
+  email: '',
+  password: '',
 })
 
+const pickedFile = ref(null)
+const fileInputRef = ref(null)
+const previewUrl = ref('')
+
+const pickedFileName = computed(() => pickedFile.value?.name || '')
+
+const openFilePicker = () => {
+  fileInputRef.value?.click?.()
+}
+
+const clearPickedFile = () => {
+  pickedFile.value = null
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value)
+    previewUrl.value = ''
+  }
+  if (fileInputRef.value) fileInputRef.value.value = ''
+}
+
 const openEdit = () => {
+  editError.value = ''
   editForm.name = me.name
   editForm.email = me.email
-  editForm.profileImage = me.profileImage
+  editForm.password = ''
+  pickedFile.value = null
+
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+  previewUrl.value = ''
+  if (fileInputRef.value) fileInputRef.value.value = ''
+
   editOpen.value = true
 }
 
-const openWithdraw = () => {
-  withdrawOpen.value = true
+const closeEdit = () => {
+  if (editSubmitting.value) return
+  editOpen.value = false
 }
 
-const applyEditUI = () => {
-  me.name = editForm.name
-  me.email = editForm.email
-  me.profileImage = editForm.profileImage
-  editOpen.value = false
+const onPickFile = (e) => {
+  const file = e?.target?.files?.[0]
+  if (!file) return
+
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+
+  pickedFile.value = file
+  previewUrl.value = URL.createObjectURL(file)
+}
+
+onBeforeUnmount(() => {
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+})
+
+const submitEdit = async () => {
+  editError.value = ''
+
+  const dto = {
+    name: (editForm.name ?? '').trim(),
+    email: (editForm.email ?? '').trim(),
+  }
+
+  const pw = (editForm.password ?? '').trim()
+  if (pw) dto.password = pw
+
+  if (!dto.name) {
+    editError.value = '이름을 입력해주세요.'
+    return
+  }
+  if (!dto.email) {
+    editError.value = '이메일을 입력해주세요.'
+    return
+  }
+
+  editSubmitting.value = true
+  try {
+    await updateMyProfile({
+      dto,
+      file: pickedFile.value,
+    })
+
+    await loadMe()
+    editOpen.value = false
+  } catch (e) {
+    console.error('정보수정실패:', e)
+    editError.value = '정보 수정에 실패했어요.'
+  } finally {
+    editSubmitting.value = false
+  }
+}
+
+const withdrawSubmitting = ref(false)
+
+const clearAuthStorage = () => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+}
+
+const confirmWithdraw = async () => {
+  if (withdrawSubmitting.value) return
+
+  const ok = confirm('정말 탈퇴할까요? 탈퇴 후에는 복구할 수 없어요.')
+  if (!ok) return
+
+  withdrawSubmitting.value = true
+  try {
+    await deleteMyAccount()
+
+    clearAuthStorage()
+    alert('탈퇴가 완료됐어요.')
+
+    await router.replace('/login')
+    window.location.replace('/login')
+  } catch (e) {
+    console.error('탈퇴실패:', e)
+
+    alert('탈퇴에 실패했어요.')
+  } finally {
+    withdrawSubmitting.value = false
+  }
 }
 
 const InfoField = {
