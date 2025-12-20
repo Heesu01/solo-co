@@ -26,3 +26,10 @@ export const updateMyProfile = ({ dto, file }) => {
     },
   })
 }
+
+// 프로젝트 조회
+export const fetchTravels = ({ projectType = 'ALL' } = {}) => {
+  return api.get('/api/travels', {
+    params: { projectType },
+  })
+}

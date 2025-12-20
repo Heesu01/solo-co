@@ -38,7 +38,7 @@
                     {{ me.name || '-' }}
                   </p>
                   <p class="mt-0.5 truncate text-[12px] text-slate-500">
-                    {{ me.email || '-' }}
+                    이메일 <span class="text-slate-400">·</span> {{ me.email || '-' }}
                   </p>
                   <p class="mt-1 text-[12px] text-slate-500">
                     아이디 <span class="text-slate-400">·</span> {{ me.id || '-' }}
@@ -104,11 +104,11 @@
                   type="button"
                   class="cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold"
                   :class="
-                    projectMode === 'SOLO'
+                    projectMode === 'PERSONAL'
                       ? 'bg-slate-900 text-white'
                       : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                   "
-                  @click="projectMode = 'SOLO'"
+                  @click="projectMode = 'PERSONAL'"
                 >
                   개인
                 </button>
@@ -131,7 +131,7 @@
                   <input
                     v-model="q"
                     type="text"
-                    placeholder="프로젝트 검색 (제목/지역)"
+                    placeholder="프로젝트를 검색하세요."
                     class="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-sm outline-none placeholder:text-slate-400 focus:border-slate-400"
                   />
                 </div>
@@ -140,14 +140,22 @@
                   v-model="sortKey"
                   class="cursor-pointer rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-slate-400"
                 >
-                  <option value="recent">최근 생성순</option>
                   <option value="start">여행 시작일순</option>
                   <option value="name">가나다순</option>
+                  <option value="status">상태별</option>
                 </select>
               </div>
             </div>
 
-            <div v-if="filteredProjects.length === 0" class="rounded-lg p-4">
+            <div v-if="projectsLoading" class="rounded-lg p-4">
+              <p class="text-sm text-slate-500">프로젝트 불러오는 중...</p>
+            </div>
+
+            <div v-else-if="projectsError" class="rounded-lg p-4">
+              <p class="text-sm text-rose-600">{{ projectsError }}</p>
+            </div>
+
+            <div v-else-if="filteredProjects.length === 0" class="rounded-lg p-4">
               <p class="text-sm text-slate-500">프로젝트가 없어요.</p>
             </div>
 
@@ -162,11 +170,11 @@
                 @keydown.enter.prevent="goProject(p)"
                 @keydown.space.prevent="goProject(p)"
               >
-                <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2">
                       <span
-                        class="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                        class="-ml-2 inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
                         :class="
                           p.projectType === 'GROUP'
                             ? 'bg-indigo-50 text-indigo-700'
@@ -175,22 +183,57 @@
                       >
                         {{ p.projectType === 'GROUP' ? 'GROUP' : 'SOLO' }}
                       </span>
-                      <span class="text-[11px] text-slate-400">·</span>
-                      <span class="text-[11px] text-slate-500">{{ p.createdAt }}</span>
                     </div>
 
                     <h3 class="mt-2 truncate text-[15px] font-semibold text-slate-900">
                       {{ p.title }}
                     </h3>
-                    <p class="mt-1 truncate text-[13px] text-slate-600">
-                      {{ p.location }} · {{ p.startDate }} ~ {{ p.endDate }}
-                    </p>
-                  </div>
-                </div>
 
-                <div class="mt-4 flex items-center justify-between">
-                  <p class="text-[12px] text-slate-500">멤버 {{ p.membersCount }}명</p>
-                  <p class="text-[12px] text-slate-500">진행도 {{ p.progress }}%</p>
+                    <div
+                      class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500"
+                    >
+                      <span class="inline-flex items-center gap-1">
+                        <MapPinIcon class="h-3.5 w-3.5" />
+                        {{ p.location || '-' }}
+                      </span>
+
+                      <span class="inline-flex items-center gap-1">
+                        <CalendarIcon class="h-3.5 w-3.5" />
+                        {{ dateLabel(p.startDate, p.endDate) }}
+                      </span>
+
+                      <span class="inline-flex items-center gap-1">
+                        <UsersIcon class="h-3.5 w-3.5" />
+                        {{ p.memberCount ?? '-' }}명
+                      </span>
+
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        :class="statusClass(p.status)"
+                      >
+                        <span class="h-1.5 w-1.5 rounded-full" :class="statusDotClass(p.status)" />
+                        {{ statusLabel(p.status) }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    class="h-[92px] w-[132px] shrink-0 overflow-hidden border border-slate-200 bg-slate-100"
+                  >
+                    <img
+                      v-if="p.thumbnail"
+                      :src="p.thumbnail"
+                      alt=""
+                      class="h-full w-full object-cover transition group-hover:scale-[1.03]"
+                      loading="lazy"
+                    />
+                    <div
+                      v-else
+                      class="flex h-full w-full items-center justify-center text-[11px] font-semibold text-slate-400"
+                    >
+                      NO IMAGE
+                    </div>
+                  </div>
                 </div>
               </article>
             </div>
@@ -335,9 +378,10 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchMyProfile, updateMyProfile, deleteMyAccount } from '@/api/my'
+import { fetchMyProfile, updateMyProfile, deleteMyAccount, fetchTravels } from '@/api/my'
+import { MapPinIcon, CalendarIcon, UsersIcon } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
 
@@ -381,44 +425,80 @@ const loadMe = async () => {
   }
 }
 
-onMounted(loadMe)
-
 const projectMode = ref('ALL')
 const q = ref('')
-const sortKey = ref('recent')
+const sortKey = ref('start')
 
-const projects = ref([
-  {
-    projectId: 10,
-    projectType: 'GROUP',
-    title: '부산 3박 4일',
-    location: '부산',
-    startDate: '2026-02-10',
-    endDate: '2026-02-13',
-    membersCount: 4,
-    progress: 52,
-    createdAt: '2025-12-05',
-  },
-  {
-    projectId: 22,
-    projectType: 'SOLO',
-    title: '도쿄 혼자 2박 3일',
-    location: '도쿄',
-    startDate: '2026-02-20',
-    endDate: '2026-02-22',
-    membersCount: 1,
-    progress: 18,
-    createdAt: '2025-12-07',
-  },
-])
+const dateLabel = (start, end) => {
+  const s = (start ?? '').toString().trim()
+  const e = (end ?? '').toString().trim()
+  if (!s && !e) return '-'
+  if (s && !e) return s
+  if (!s && e) return e
+  return `${s} ~ ${e}`
+}
+
+const projectsLoading = ref(false)
+const projectsError = ref('')
+const projects = ref([])
+
+const loadProjects = async () => {
+  projectsLoading.value = true
+  projectsError.value = ''
+  try {
+    const res = await fetchTravels({
+      projectType: projectMode.value,
+    })
+    const data = pickPayload(res)
+    projects.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    console.error('[MyPage] loadProjects error:', e)
+    const status = e?.response?.status
+    if (status === 401) projectsError.value = '로그인이 필요해요.'
+    else projectsError.value = '프로젝트를 불러오지 못했어요.'
+  } finally {
+    projectsLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  await loadMe()
+  await loadProjects()
+})
+
+watch(projectMode, () => {
+  loadProjects()
+})
+
+const statusLabel = (s) => {
+  if (s === 'UPCOMING') return '예정'
+  if (s === 'IN_PROGRESS') return '진행 중'
+  if (s === 'DONE') return '완료'
+  return s || '-'
+}
+
+const statusClass = (s) => {
+  if (s === 'IN_PROGRESS') return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+  if (s === 'DONE') return 'bg-slate-100 text-slate-700 border border-slate-200'
+  return 'bg-sky-50 text-sky-700 border border-sky-200'
+}
+
+const statusDotClass = (s) => {
+  if (s === 'IN_PROGRESS') return 'bg-emerald-500'
+  if (s === 'DONE') return 'bg-slate-500'
+  return 'bg-sky-500'
+}
+
+const statusOrder = (s) => {
+  if (s === 'UPCOMING') return 0
+  if (s === 'IN_PROGRESS') return 1
+  if (s === 'DONE') return 2
+  return 99
+}
 
 const filteredProjects = computed(() => {
   const keyword = q.value.trim().toLowerCase()
   let list = projects.value.slice()
-
-  if (projectMode.value !== 'ALL') {
-    list = list.filter((p) => p.projectType === projectMode.value)
-  }
 
   if (keyword) {
     list = list.filter((p) => {
@@ -430,10 +510,15 @@ const filteredProjects = computed(() => {
 
   if (sortKey.value === 'name') {
     list.sort((a, b) => (a.title ?? '').localeCompare(b.title ?? ''))
-  } else if (sortKey.value === 'start') {
-    list.sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? ''))
+  } else if (sortKey.value === 'status') {
+    list.sort((a, b) => {
+      const ao = statusOrder(a.status)
+      const bo = statusOrder(b.status)
+      if (ao !== bo) return ao - bo
+      return (a.startDate ?? '').localeCompare(b.startDate ?? '')
+    })
   } else {
-    list.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+    list.sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? ''))
   }
 
   return list
@@ -441,11 +526,8 @@ const filteredProjects = computed(() => {
 
 const goProject = (p) => {
   if (!p?.projectId) return
-  if (p.projectType === 'GROUP') {
-    router.push(`/group/${p.projectId}`)
-    return
-  }
-  router.push(`/solo/${p.projectId}`)
+  if (p.projectType === 'GROUP') router.push(`/group/${p.projectId}`)
+  else router.push(`/solo/${p.projectId}`)
 }
 
 const editOpen = ref(false)
@@ -464,9 +546,7 @@ const previewUrl = ref('')
 
 const pickedFileName = computed(() => pickedFile.value?.name || '')
 
-const openFilePicker = () => {
-  fileInputRef.value?.click?.()
-}
+const openFilePicker = () => fileInputRef.value?.click?.()
 
 const clearPickedFile = () => {
   pickedFile.value = null
@@ -499,9 +579,7 @@ const closeEdit = () => {
 const onPickFile = (e) => {
   const file = e?.target?.files?.[0]
   if (!file) return
-
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
-
   pickedFile.value = file
   previewUrl.value = URL.createObjectURL(file)
 }
@@ -521,27 +599,19 @@ const submitEdit = async () => {
   const pw = (editForm.password ?? '').trim()
   if (pw) dto.password = pw
 
-  if (!dto.name) {
-    editError.value = '이름을 입력해주세요.'
-    return
-  }
-  if (!dto.email) {
-    editError.value = '이메일을 입력해주세요.'
-    return
-  }
+  if (!dto.name) return (editError.value = '이름을 입력해주세요.')
+  if (!dto.email) return (editError.value = '이메일을 입력해주세요.')
 
   editSubmitting.value = true
   try {
-    await updateMyProfile({
-      dto,
-      file: pickedFile.value,
-    })
-
+    await updateMyProfile({ dto, file: pickedFile.value })
     await loadMe()
     editOpen.value = false
   } catch (e) {
-    console.error('정보수정실패:', e)
-    editError.value = '정보 수정에 실패했어요.'
+    console.error('[MyPage] update error:', e)
+    const status = e?.response?.status
+    if (status === 401) editError.value = '로그인이 필요해요.'
+    else editError.value = '정보 수정에 실패했어요.'
   } finally {
     editSubmitting.value = false
   }
@@ -556,23 +626,21 @@ const clearAuthStorage = () => {
 
 const confirmWithdraw = async () => {
   if (withdrawSubmitting.value) return
-
   const ok = confirm('정말 탈퇴할까요? 탈퇴 후에는 복구할 수 없어요.')
   if (!ok) return
 
   withdrawSubmitting.value = true
   try {
     await deleteMyAccount()
-
     clearAuthStorage()
     alert('탈퇴가 완료됐어요.')
-
     await router.replace('/login')
     window.location.replace('/login')
   } catch (e) {
-    console.error('탈퇴실패:', e)
-
-    alert('탈퇴에 실패했어요.')
+    console.error('[MyPage] withdraw error:', e)
+    const status = e?.response?.status
+    if (status === 401) alert('로그인이 필요해요.')
+    else alert('탈퇴에 실패했어요.')
   } finally {
     withdrawSubmitting.value = false
   }
