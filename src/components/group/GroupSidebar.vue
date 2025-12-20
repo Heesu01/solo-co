@@ -100,25 +100,44 @@
             </button>
           </li>
         </ul>
+
+        <div class="mt-4 border-t border-slate-200">
+          <button
+            type="button"
+            class="cursor-pointer mt-5 flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-start to-end text-sm font-semibold text-white shadow-md transition hover:from-start-hover hover:to-end-hover disabled:opacity-40 disabled:cursor-not-allowed"
+            :disabled="!projectId"
+            @click="goToTravel"
+          >
+            일정 짜기
+          </button>
+
+          <p class="mt-2 text-[11px] text-slate-500">
+            프로젝트 장소를 기반으로 일정 후보를 생성해요.
+          </p>
+        </div>
       </div>
     </section>
   </aside>
 </template>
+
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { MapPinIcon, CalendarDaysIcon } from '@heroicons/vue/24/outline'
 import { fetchTravelDetail, removeMember } from '@/api/group'
 
 defineEmits(['manage-member'])
 
 const route = useRoute()
+const router = useRouter()
 
 const group = ref(null)
 const members = ref([])
 
 const loading = ref(false)
 const errorMsg = ref('')
+
+const projectId = computed(() => route.params.id)
 
 const membersCount = computed(() => (Array.isArray(members.value) ? members.value.length : 0))
 
@@ -129,14 +148,14 @@ const pickPayload = (res) => {
 }
 
 const load = async () => {
-  const projectId = route.params.id
-  if (!projectId) return
+  const pid = route.params.id
+  if (!pid) return
 
   loading.value = true
   errorMsg.value = ''
 
   try {
-    const res = await fetchTravelDetail(projectId)
+    const res = await fetchTravelDetail(pid)
     const payload = pickPayload(res)
     group.value = payload?.project ?? null
     members.value = Array.isArray(payload?.members) ? payload.members : []
@@ -149,14 +168,20 @@ const load = async () => {
   }
 }
 
+const goToTravel = () => {
+  const pid = route.params.id
+  if (!pid) return
+  router.push(`/group/${pid}/travel`)
+}
+
 const onRemoveMember = async (member) => {
-  const projectId = route.params.id
-  if (!projectId || !member?.userId) return
+  const pid = route.params.id
+  if (!pid || !member?.userId) return
 
   if (!confirm(`${member.name}님을 삭제할까요?`)) return
 
   try {
-    await removeMember(projectId, member.userId)
+    await removeMember(pid, member.userId)
     members.value = members.value.filter((m) => m.userId !== member.userId)
   } catch (e) {
     const status = e?.response?.status
