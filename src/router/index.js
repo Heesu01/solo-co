@@ -12,15 +12,18 @@ import InviteJoinView from '@/views/group/InviteJoinView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 import CommunityDetailView from '@/views/group/CommunityDetailView.vue'
 import MyPageView from '../views/mypage/MyPageView.vue'
+import TravelPlanView from '@/views/travel/TravelPlanView.vue'
 
 const routes = [
   { path: '/', name: 'home', component: HomeView },
   { path: '/login', name: 'login', component: LoginView },
   { path: '/signup', name: 'signup', component: SignupView },
   { path: '/solo', name: 'solo-home', component: SoloHomeView },
+  { path: '/solo/:id/travel', name: 'solo-travel', component: TravelPlanView },
   { path: '/group', name: 'group-home', component: GroupHomeView },
   { path: '/group/create', name: 'group-create', component: GroupCreateView },
   { path: '/group/:id', name: 'group-detail', component: GroupDetailView },
+  { path: '/group/:id/travel', name: 'group-travel', component: TravelPlanView },
   { path: '/group/:id/create', name: 'CommunityCreate', component: CommunityCreateView },
   { path: '/group/:id/community/:postId', name: 'CommunityDetail', component: CommunityDetailView },
   { path: '/invite/:code', name: 'InviteJoin', component: InviteJoinView },
