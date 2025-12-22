@@ -17,3 +17,20 @@ export const addTravelPlace = async ({ projectId, placeId }) => {
 export const deleteTravelPlace = async ({ projectId, placeId }) => {
   return api.delete(`/api/travels/${projectId}/places/${placeId}`)
 }
+
+// 일정 자동 생성
+export const autoGenerateItinerary = async ({ projectId }) => {
+  const res = await api.post(`/api/travels/${projectId}/itinerary/auto-generate`, null, {
+    timeout: 100000,
+  })
+  return res?.data?.data ?? res?.data
+}
+
+// AI 일정 선택
+export const selectAiItinerary = async ({ projectId, aiResultId, routeType }) => {
+  const res = await api.post(`/api/travels/${projectId}/itinerary/ai-select`, {
+    aiResultId,
+    routeType: routeType,
+  })
+  return res?.data
+}

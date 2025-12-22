@@ -19,11 +19,15 @@
         :places="projectPlaces"
         :active-place-id="activeSavedPlaceId"
         :route-candidates="routeCandidates"
-        :selected-route-id="selectedRouteId"
+        :ai-loading="aiLoading"
+        :ai-error="aiError"
+        :applying-route-type="applyingRouteType"
+        :apply-error="applyError"
+        :apply-help-text="applyHelpText"
         @selectPlace="handleSelectSavedPlace"
         @removePlace="handleRemoveSavedPlace"
         @requestAiRoutes="handleRequestAiRoutes"
-        @selectRoute="handleSelectRoute"
+        @applyAiRoute="handleApplyAiRoute"
       />
     </aside>
 
@@ -41,26 +45,81 @@
       @select="handleSelectSearchResult"
       @addDetail="handleAddSelectedSearchPlace"
     />
+
+    <div
+      v-if="showSavedModal"
+      class="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 px-4"
+      @click.self="closeSavedModal"
+    >
+      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <p class="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-400">saved</p>
+        <h3 class="mt-1 text-lg font-bold text-slate-900">코스 저장 완료</h3>
+
+        <p class="mt-2 text-sm text-slate-600">
+          저장한 코스는 <span class="font-semibold text-slate-900">프로젝트 경로</span>에
+          추가됩니다. 지금 바로 확인하고 상세 수정도 할 수 있어요.
+        </p>
+
+        <div class="mt-5 flex gap-2">
+          <button
+            type="button"
+            class="cursor-pointer h-11 flex-1 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            @click="closeSavedModal"
+          >
+            계속 담기
+          </button>
+
+          <button
+            type="button"
+            class="cursor-pointer h-11 flex-1 rounded-xl bg-gradient-to-r from-start to-end text-sm font-semibold text-white shadow-md transition hover:from-start-hover hover:to-end-hover"
+            @click="goItinerary"
+          >
+            경로 보러가기
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import GoogleMap from '@/components/travel/GoogleMap.vue'
 import SavedListPanel from '@/components/travel/SavedListPanel.vue'
 import RightSearchPanel from '@/components/travel/RightSearchPanel.vue'
 
-import { fetchTravelPlaces, addTravelPlace, deleteTravelPlace } from '@/api/travel'
+import {
+  fetchTravelPlaces,
+  addTravelPlace,
+  deleteTravelPlace,
+  autoGenerateItinerary,
+  selectAiItinerary,
+} from '@/api/travel'
 
 const route = useRoute()
+const router = useRouter()
+
 const projectId = computed(() => Number(route.params.id))
+
+const baseMode = computed(() => (route.path.startsWith('/group') ? 'group' : 'solo'))
+const itineraryPath = computed(() => `/${baseMode.value}/${projectId.value}/itinerary`)
+
+const applyHelpText = computed(
+  () => '저장한 코스는 프로젝트 경로에 추가됩니다. 지금 바로 확인하고 상세 수정도 할 수 있어요.',
+)
 
 const projectPlaces = ref([])
 const activeSavedPlaceId = ref(null)
+
+const aiResultId = ref(null)
 const routeCandidates = ref([])
-const selectedRouteId = ref(null)
+
+const aiLoading = ref(false)
+const aiError = ref('')
+const applyingRouteType = ref(null)
+const applyError = ref('')
 
 const searchQuery = ref('')
 const searchResults = ref([])
@@ -73,9 +132,21 @@ const searchError = ref('')
 const mapRef = ref(null)
 let placesService = null
 
+const showSavedModal = ref(false)
+const savedRouteType = ref(null)
+
+const closeSavedModal = () => {
+  showSavedModal.value = false
+  savedRouteType.value = null
+}
+
+const goItinerary = () => {
+  closeSavedModal()
+  router.push(itineraryPath.value)
+}
+
 const onMapReady = (map) => {
   mapRef.value = map
-
   placesService = new google.maps.places.PlacesService(map)
 }
 
@@ -155,7 +226,6 @@ const handleRemoveSavedPlace = async (placeId) => {
 
   try {
     await deleteTravelPlace({ projectId: projectId.value, placeId })
-
     await loadPlaces()
 
     if (removedGooglePlaceId && activeSavedPlaceId.value === removedGooglePlaceId) {
@@ -168,21 +238,65 @@ const handleRemoveSavedPlace = async (placeId) => {
   }
 }
 
-const handleRequestAiRoutes = () => {
-  routeCandidates.value = [
-    {
-      id: 'r1',
-      title: '도심 감성 코스',
-      summary: '카페 → 산책 → 맛집',
-      stops: [],
-      duration: '약 5시간',
-    },
-  ]
-  selectedRouteId.value = null
+const handleRequestAiRoutes = async () => {
+  if (!Number.isFinite(projectId.value)) return
+  if (aiLoading.value) return
+
+  aiLoading.value = true
+  aiError.value = ''
+  applyError.value = ''
+  try {
+    routeCandidates.value = []
+    aiResultId.value = null
+
+    const res = await autoGenerateItinerary({ projectId: projectId.value })
+
+    aiResultId.value = res?.aiResultId ?? null
+    routeCandidates.value = Array.isArray(res?.candidates) ? res.candidates : []
+
+    if (!aiResultId.value || routeCandidates.value.length === 0) {
+      aiError.value = '추천 결과가 없습니다. 담은 장소를 늘리거나 다시 시도해보세요.'
+    }
+  } catch (e) {
+    console.error(e)
+
+    if (e?.code === 'ECONNABORTED') {
+      aiError.value = '추천 생성이 오래 걸리고 있어요. 잠시 후 다시 시도해 주세요.'
+    } else {
+      aiError.value =
+        e?.response?.data?.message || e?.response?.data?.error || 'AI 추천 중 오류가 발생했습니다.'
+    }
+  } finally {
+    aiLoading.value = false
+  }
 }
 
-const handleSelectRoute = (routeId) => {
-  selectedRouteId.value = routeId
+const handleApplyAiRoute = async (routeType) => {
+  if (!Number.isFinite(projectId.value)) return
+  if (!aiResultId.value) {
+    applyError.value = '먼저 추천받기를 눌러주세요.'
+    return
+  }
+  if (applyingRouteType.value != null) return
+
+  applyingRouteType.value = routeType
+  applyError.value = ''
+  try {
+    await selectAiItinerary({
+      projectId: projectId.value,
+      aiResultId: aiResultId.value,
+      routeType,
+    })
+
+    savedRouteType.value = routeType
+    showSavedModal.value = true
+  } catch (e) {
+    console.error(e)
+    applyError.value =
+      e?.response?.data?.message || e?.response?.data?.error || '경로 저장 중 오류가 발생했습니다.'
+  } finally {
+    applyingRouteType.value = null
+  }
 }
 
 const handleSearch = () => {
@@ -323,7 +437,6 @@ const handleAddSelectedSearchPlace = async () => {
 
     const message =
       e?.response?.data?.message || e?.response?.data?.error || '장소 추가 중 오류가 발생했습니다.'
-
     alert(message)
   }
 }
