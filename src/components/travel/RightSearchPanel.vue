@@ -105,10 +105,10 @@
         >
           <svg
             viewBox="0 0 24 24"
-            class="h-5 w-5 text-slate-800"
+            class="h-5 w-5 text-[#1d4ed8]"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
+            stroke-width="3"
           >
             <path d="M12 5v14M5 12h14" stroke-linecap="round" />
           </svg>

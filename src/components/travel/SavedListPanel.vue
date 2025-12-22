@@ -94,7 +94,7 @@
           <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
             ai routes
           </p>
-          <h3 class="mt-1 text-[14px] font-bold text-slate-900">경로 추천</h3>
+          <h3 class="mt-1 text-[14px] font-bold text-slate-900">일정 추천</h3>
           <p class="mt-1 text-[12px] text-slate-600">
             담은 장소를 기반으로 AI가 날짜별 후보 경로를 생성합니다.
           </p>
@@ -116,6 +116,7 @@
       <div v-if="aiLoading" class="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
         AI가 코스를 만들고 있어요… 잠시만 기다려주세요.
       </div>
+
       <div
         v-else-if="aiError"
         class="mt-4 rounded-xl bg-rose-50 p-4 text-sm font-semibold text-rose-700"
@@ -133,12 +134,20 @@
       <!-- 후보 리스트 -->
       <div v-else class="mt-4 space-y-2">
         <p class="mt-1 text-[12px] text-slate-600">
-          저장을 하면 프로젝트 경로에 추가돼 더 상세하게 보거나 수정할 수 있습니다.
+          코스를 선택하면 지도에서 순서 마커로 미리 볼 수 있어요. <br />저장하면 프로젝트 일정에
+          추가됩니다.
         </p>
+
         <div
           v-for="c in routeCandidates"
           :key="c.routeType"
-          class="rounded-xl border border-slate-200 bg-white p-4"
+          class="rounded-xl border p-4 transition cursor-pointer"
+          :class="
+            c.routeType === activeCandidateRouteType
+              ? 'border-slate-900 bg-slate-900/5'
+              : 'border-slate-200 bg-white hover:bg-slate-50'
+          "
+          @click="$emit('previewAiCandidate', c.routeType)"
         >
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
@@ -180,10 +189,32 @@
               type="button"
               class="cursor-pointer shrink-0 rounded-lg bg-slate-900 px-3 py-2 text-[12px] font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="applyingRouteType != null"
-              @click="$emit('applyAiRoute', c.routeType)"
+              @click.stop="$emit('applyAiRoute', c.routeType)"
             >
               <span v-if="applyingRouteType === c.routeType">저장중…</span>
               <span v-else>저장</span>
+            </button>
+          </div>
+
+          <div
+            v-if="
+              c.routeType === activeCandidateRouteType && Array.isArray(c.days) && c.days.length
+            "
+            class="mt-3 flex flex-wrap gap-2"
+          >
+            <button
+              v-for="d in c.days"
+              :key="d.day"
+              type="button"
+              class="cursor-pointer rounded-full border px-3 py-1 text-[12px] font-semibold transition"
+              :class="
+                d.day === activeCandidateDay
+                  ? 'border-slate-900 bg-slate-900 text-white'
+                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+              "
+              @click.stop="$emit('previewAiDay', { routeType: c.routeType, day: d.day })"
+            >
+              DAY {{ d.day }}
             </button>
           </div>
 
@@ -220,7 +251,7 @@
 
         <div
           v-if="applyError"
-          class="rounded-xl bg-rose-50 p-4 text-sm font-semibold text-rose-700"
+          class="mt-2 rounded-xl bg-rose-50 p-4 text-sm font-semibold text-rose-700"
         >
           {{ applyError }}
         </div>
@@ -241,9 +272,19 @@ defineProps({
 
   applyingRouteType: { type: [Number, String], default: null },
   applyError: { type: String, default: '' },
+
+  activeCandidateRouteType: { type: [Number, null], default: null },
+  activeCandidateDay: { type: [Number, null], default: 1 },
 })
 
-defineEmits(['selectPlace', 'removePlace', 'requestAiRoutes', 'applyAiRoute'])
+defineEmits([
+  'selectPlace',
+  'removePlace',
+  'requestAiRoutes',
+  'applyAiRoute',
+  'previewAiCandidate',
+  'previewAiDay',
+])
 
 const dayLine = (dayObj) => {
   const places = Array.isArray(dayObj?.places) ? dayObj.places : []

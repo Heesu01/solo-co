@@ -7,6 +7,7 @@
       :active-id="activeSavedPlaceId"
       :search-markers="searchMapMarkers"
       :active-search-id="activeSearchId"
+      :ai-markers="aiPreviewMarkers"
       @ready="onMapReady"
       @markerClick="handleSelectSavedPlace"
       @searchMarkerClick="handleSelectSearchMarker"
@@ -24,10 +25,14 @@
         :applying-route-type="applyingRouteType"
         :apply-error="applyError"
         :apply-help-text="applyHelpText"
+        :active-candidate-route-type="activeCandidateRouteType"
+        :active-candidate-day="activeCandidateDay"
         @selectPlace="handleSelectSavedPlace"
         @removePlace="handleRemoveSavedPlace"
         @requestAiRoutes="handleRequestAiRoutes"
         @applyAiRoute="handleApplyAiRoute"
+        @previewAiCandidate="handlePreviewAiCandidate"
+        @previewAiDay="handlePreviewAiDay"
       />
     </aside>
 
@@ -107,7 +112,7 @@ const baseMode = computed(() => (route.path.startsWith('/group') ? 'group' : 'so
 const itineraryPath = computed(() => `/${baseMode.value}/${projectId.value}/itinerary`)
 
 const applyHelpText = computed(
-  () => '저장한 코스는 프로젝트 경로에 추가됩니다. 지금 바로 확인하고 상세 수정도 할 수 있어요.',
+  () => '저장하면 프로젝트 일정에 추가됩니다. 저장 후 바로 확인하고 상세 수정도 할 수 있어요.',
 )
 
 const projectPlaces = ref([])
@@ -120,6 +125,9 @@ const aiLoading = ref(false)
 const aiError = ref('')
 const applyingRouteType = ref(null)
 const applyError = ref('')
+
+const activeCandidateRouteType = ref(null)
+const activeCandidateDay = ref(1)
 
 const searchQuery = ref('')
 const searchResults = ref([])
@@ -167,7 +175,45 @@ const searchMapMarkers = computed(() =>
     .map((r) => ({ id: r.placeId, lat: r.lat, lng: r.lng, title: r.name })),
 )
 
+const activeCandidate = computed(
+  () => routeCandidates.value.find((c) => c.routeType === activeCandidateRouteType.value) ?? null,
+)
+
+const activeCandidateDayPlaces = computed(() => {
+  const candidate = activeCandidate.value
+  if (!candidate) return []
+  const days = Array.isArray(candidate.days) ? candidate.days : []
+  const dayObj = days.find((d) => d.day === activeCandidateDay.value) ?? days[0] ?? null
+  const places = Array.isArray(dayObj?.places) ? dayObj.places : []
+  return places
+})
+
+const aiPreviewMarkers = computed(() => {
+  const places = activeCandidateDayPlaces.value
+  return places
+    .map((p, idx) => {
+      const lat = p?.latitude ?? p?.lat
+      const lng = p?.longitude ?? p?.lng
+      if (typeof lat !== 'number' || typeof lng !== 'number') return null
+      return {
+        id: `${activeCandidateRouteType.value || 'ai'}-${activeCandidateDay.value}-${idx}`,
+        order: idx + 1,
+        lat,
+        lng,
+        title: p?.placeName ?? p?.name ?? '',
+        isNew: !!p?.newPlace,
+        placeId: p?.placeId ?? null,
+        googlePlaceId: p?.googlePlaceId ?? null,
+      }
+    })
+    .filter(Boolean)
+})
+
 const mapCenter = computed(() => {
+  if (aiPreviewMarkers.value.length) {
+    return { lat: aiPreviewMarkers.value[0].lat, lng: aiPreviewMarkers.value[0].lng }
+  }
+
   const savedActive = projectPlaces.value.find((p) => p.googlePlaceId === activeSavedPlaceId.value)
   if (typeof savedActive?.lat === 'number' && typeof savedActive?.lng === 'number') {
     return { lat: savedActive.lat, lng: savedActive.lng }
@@ -238,6 +284,16 @@ const handleRemoveSavedPlace = async (placeId) => {
   }
 }
 
+const handlePreviewAiCandidate = (routeType) => {
+  activeCandidateRouteType.value = routeType
+  activeCandidateDay.value = 1
+}
+
+const handlePreviewAiDay = ({ routeType, day }) => {
+  activeCandidateRouteType.value = routeType
+  activeCandidateDay.value = day
+}
+
 const handleRequestAiRoutes = async () => {
   if (!Number.isFinite(projectId.value)) return
   if (aiLoading.value) return
@@ -245,6 +301,10 @@ const handleRequestAiRoutes = async () => {
   aiLoading.value = true
   aiError.value = ''
   applyError.value = ''
+
+  activeCandidateRouteType.value = null
+  activeCandidateDay.value = 1
+
   try {
     routeCandidates.value = []
     aiResultId.value = null
@@ -256,6 +316,13 @@ const handleRequestAiRoutes = async () => {
 
     if (!aiResultId.value || routeCandidates.value.length === 0) {
       aiError.value = '추천 결과가 없습니다. 담은 장소를 늘리거나 다시 시도해보세요.'
+      return
+    }
+
+    const first = routeCandidates.value[0]
+    if (first?.routeType != null) {
+      activeCandidateRouteType.value = first.routeType
+      activeCandidateDay.value = 1
     }
   } catch (e) {
     console.error(e)

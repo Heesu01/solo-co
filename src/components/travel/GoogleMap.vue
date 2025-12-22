@@ -16,6 +16,9 @@ const props = defineProps({
   // 검색 마커
   searchMarkers: { type: Array, default: () => [] },
 
+  // AI 추천 경로 미리보기 마커
+  aiMarkers: { type: Array, default: () => [] },
+
   // 활성화된 마커
   activeId: { type: String, default: null },
   activeSearchId: { type: String, default: null },
@@ -28,6 +31,9 @@ let map = null
 
 let savedMarkerObjs = new Map()
 let searchMarkerObjs = new Map()
+let aiMarkerObjs = new Map()
+
+let aiPolyline = null
 
 const makePinDataUrl = ({
   fill = '#111827',
@@ -47,14 +53,11 @@ const makePinDataUrl = ({
     </defs>
 
     <g filter="url(#ds)">
-      <!-- pin -->
       <path
         fill="${fill}"
         d="M24 2C15.7 2 9 8.7 9 17c0 12 15 29 15 29s15-17 15-29C39 8.7 32.3 2 24 2z"
       />
-      <!-- inner glow -->
       <circle cx="24" cy="18" r="10" fill="${inner}" />
-      <!-- center dot -->
       <circle cx="24" cy="18" r="3.4" fill="${dot}" />
     </g>
   </svg>
@@ -63,14 +66,50 @@ const makePinDataUrl = ({
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
 }
 
+const makeNumberMarkerUrl = (number, { fill = '#111827' } = {}) => {
+  const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 42 42">
+    <defs>
+      <filter id="ds">
+        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+      </filter>
+    </defs>
+    <g filter="url(#ds)">
+      <circle cx="21" cy="21" r="18" fill="${fill}" />
+      <text
+        x="21"
+        y="25"
+        text-anchor="middle"
+        font-size="14"
+        font-weight="700"
+        fill="white"
+        font-family="Inter, system-ui, sans-serif"
+      >
+        ${number}
+      </text>
+    </g>
+  </svg>
+  `.trim()
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
+}
+
 const clearMarkerMap = (mapObj) => {
   mapObj.forEach((m) => m.setMap(null))
   mapObj.clear()
 }
 
+const clearAiPolyline = () => {
+  if (aiPolyline) {
+    aiPolyline.setMap(null)
+    aiPolyline = null
+  }
+}
+
 const clearAllMarkers = () => {
   clearMarkerMap(savedMarkerObjs)
   clearMarkerMap(searchMarkerObjs)
+  clearMarkerMap(aiMarkerObjs)
+  clearAiPolyline()
 }
 
 const setMarkers = ({ list, store, kind }) => {
@@ -97,6 +136,54 @@ const setMarkers = ({ list, store, kind }) => {
     })
 
     store.set(m.id, marker)
+  })
+}
+
+const setAiMarkers = () => {
+  if (!map) return
+  clearMarkerMap(aiMarkerObjs)
+
+  const list = Array.isArray(props.aiMarkers) ? props.aiMarkers : []
+  list.forEach((m) => {
+    if (typeof m.lat !== 'number' || typeof m.lng !== 'number') return
+
+    const marker = new google.maps.Marker({
+      map,
+      position: { lat: m.lat, lng: m.lng },
+      title: m.title ?? '',
+      icon: {
+        url: makeNumberMarkerUrl(m.order ?? 1, { fill: '#111827' }),
+        scaledSize: new google.maps.Size(42, 42),
+      },
+      zIndex: 40,
+    })
+
+    aiMarkerObjs.set(m.id ?? `${m.lat},${m.lng},${m.order ?? 1}`, marker)
+  })
+
+  drawAiPolyline()
+}
+
+const drawAiPolyline = () => {
+  if (!map) return
+  clearAiPolyline()
+
+  const list = Array.isArray(props.aiMarkers) ? props.aiMarkers : []
+  const points = list
+    .filter((m) => typeof m.lat === 'number' && typeof m.lng === 'number')
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((m) => ({ lat: m.lat, lng: m.lng }))
+
+  if (points.length < 2) return
+
+  aiPolyline = new google.maps.Polyline({
+    path: points,
+    map,
+    strokeColor: '#111827',
+    strokeOpacity: 0.9,
+    strokeWeight: 4,
+    geodesic: true,
+    zIndex: 35,
   })
 }
 
@@ -146,6 +233,11 @@ const applyActiveStyle = () => {
     })
     marker.setZIndex(25)
   }
+
+  // AI 마커 기본
+  aiMarkerObjs.forEach((marker) => {
+    marker.setZIndex(40)
+  })
 }
 
 const focusActive = () => {
@@ -184,6 +276,8 @@ onMounted(async () => {
   setMarkers({ list: props.markers, store: savedMarkerObjs, kind: 'saved' })
   setMarkers({ list: props.searchMarkers, store: searchMarkerObjs, kind: 'search' })
 
+  setAiMarkers()
+
   applyActiveStyle()
   focusActive()
 
@@ -204,6 +298,15 @@ watch(
   () => props.searchMarkers,
   () => {
     setMarkers({ list: props.searchMarkers, store: searchMarkerObjs, kind: 'search' })
+    applyActiveStyle()
+  },
+  { deep: true },
+)
+
+watch(
+  () => props.aiMarkers,
+  () => {
+    setAiMarkers()
     applyActiveStyle()
   },
   { deep: true },
