@@ -101,18 +101,28 @@
           </li>
         </ul>
 
-        <div class="mt-4 border-t border-slate-200">
-          <button
-            type="button"
-            class="cursor-pointer mt-5 flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-start to-end text-sm font-semibold text-white shadow-md transition hover:from-start-hover hover:to-end-hover disabled:opacity-40 disabled:cursor-not-allowed"
-            :disabled="!projectId"
-            @click="goToTravel"
-          >
-            일정 짜기
-          </button>
+        <div class="mt-4 border-t border-slate-200 pt-5">
+          <div class="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              class="cursor-pointer flex h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              :disabled="!projectId"
+              @click="goToItinerary"
+            >
+              일정 보기
+            </button>
+            <button
+              type="button"
+              class="cursor-pointer flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-start to-end text-sm font-semibold text-white shadow-md transition hover:from-start-hover hover:to-end-hover disabled:cursor-not-allowed disabled:opacity-40"
+              :disabled="!projectId"
+              @click="goToTravel"
+            >
+              일정 짜기
+            </button>
+          </div>
 
           <p class="mt-2 text-[11px] text-slate-500">
-            프로젝트 장소를 기반으로 일정 후보를 생성해요.
+            프로젝트 장소를 기반으로 일정 후보를 생성하고 확인할 수 있어요.
           </p>
         </div>
       </div>
@@ -138,7 +148,6 @@ const loading = ref(false)
 const errorMsg = ref('')
 
 const projectId = computed(() => route.params.id)
-
 const membersCount = computed(() => (Array.isArray(members.value) ? members.value.length : 0))
 
 const pickPayload = (res) => {
@@ -172,6 +181,12 @@ const goToTravel = () => {
   const pid = route.params.id
   if (!pid) return
   router.push(`/group/${pid}/travel`)
+}
+
+const goToItinerary = () => {
+  const pid = route.params.id
+  if (!pid) return
+  router.push(`/group/${pid}/itinerary`)
 }
 
 const onRemoveMember = async (member) => {

@@ -61,24 +61,41 @@
       </div>
 
       <div class="space-y-4 px-5 py-4">
-        <ItineraryDayTabs
-          :days="days"
-          :active-day="activeDay"
-          :counts="dayCounts"
-          @selectDay="setActiveDay"
-        />
+        <div v-if="isEmptyItinerary && !loading" class="rounded-2xl p-5">
+          <p class="text-[13px] font-semibold text-slate-900">아직 계획한 일정이 없어요.</p>
+          <p class="mt-1 text-[12px] text-slate-600">
+            계획 페이지에서 장소를 담고 일정을 생성해 주세요.
+          </p>
 
-        <ItineraryDayEditor
-          :day="activeDay"
-          :places="activeDayPlaces"
-          :active-place-id="activePlaceId"
-          :saving="savingDay"
-          :error="dayError"
-          @selectPlace="setActivePlace"
-          @movePlace="handleMovePlace"
-          @removePlace="handleRemovePlace"
-          @saveDay="handleSaveDay"
-        />
+          <button
+            type="button"
+            class="cursor-pointer mt-4 flex h-11 w-full items-center justify-center rounded-xl bg-white text-sm font-semibold text-slate-700 border border-slate-300 transition hover:from-start-hover hover:to-end-hover"
+            @click="goToTravel"
+          >
+            일정 짜러가기
+          </button>
+        </div>
+
+        <template v-else>
+          <ItineraryDayTabs
+            :days="days"
+            :active-day="activeDay"
+            :counts="dayCounts"
+            @selectDay="setActiveDay"
+          />
+
+          <ItineraryDayEditor
+            :day="activeDay"
+            :places="activeDayPlaces"
+            :active-place-id="activePlaceId"
+            :saving="savingDay"
+            :error="dayError"
+            @selectPlace="setActivePlace"
+            @movePlace="handleMovePlace"
+            @removePlace="handleRemovePlace"
+            @saveDay="handleSaveDay"
+          />
+        </template>
       </div>
 
       <div
@@ -189,6 +206,21 @@ const activeSearchId = ref(null)
 const searchDetail = ref(null)
 
 const placeKey = (p) => p?.googlePlaceId ?? p?.placeId ?? null
+
+const isEmptyItinerary = computed(() => {
+  const dayList = Array.isArray(days.value) ? days.value : []
+  if (!dayList.length) return true
+
+  return dayList.every((d) => {
+    const list = itineraryByDay.value?.[d]
+    return !Array.isArray(list) || list.length === 0
+  })
+})
+
+const goToTravel = () => {
+  if (!Number.isFinite(projectId.value)) return
+  router.push(travelPath.value)
+}
 
 const activeDayPlaces = computed(() => {
   const list = itineraryByDay.value?.[activeDay.value]
