@@ -57,7 +57,7 @@
 
         <p class="mt-2 text-sm text-slate-600">
           저장한 코스는 <span class="font-semibold text-slate-900">프로젝트 경로</span>에
-          추가됩니다. 지금 바로 확인하고 상세 수정도 할 수 있어요.
+          추가됩니다. <br />지금 바로 확인하고 상세 수정도 할 수 있어요.
         </p>
 
         <div class="mt-5 flex gap-2">
@@ -66,7 +66,7 @@
             class="cursor-pointer h-11 flex-1 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50"
             @click="closeSavedModal"
           >
-            계속 담기
+            다시 담기
           </button>
 
           <button

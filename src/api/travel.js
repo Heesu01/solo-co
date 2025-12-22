@@ -34,3 +34,24 @@ export const selectAiItinerary = async ({ projectId, aiResultId, routeType }) =>
   })
   return res?.data
 }
+
+// 경로 조회
+export const fetchItinerary = async ({ projectId }) => {
+  const res = await api.get(`/api/travels/${projectId}/itinerary`)
+  return res?.data?.data ?? res?.data
+}
+
+// 경로 수정
+export const updateItinerary = async ({ projectId, places = [] }) => {
+  const payload = {
+    places: Array.isArray(places) ? places : [],
+  }
+  const res = await api.put(`/api/travels/${projectId}/itinerary`, payload)
+  return res?.data
+}
+
+// 경로 전체 삭제
+export const deleteItinerary = async ({ projectId }) => {
+  const res = await api.delete(`/api/travels/${projectId}/itinerary`)
+  return res?.data
+}
