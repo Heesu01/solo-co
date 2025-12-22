@@ -21,46 +21,68 @@
         class="cursor-pointer group mb-2 w-full rounded-xl border px-4 py-3 text-left transition"
         :class="
           p.googlePlaceId === activePlaceId
-            ? 'border-slate-900 bg-slate-900 text-white'
+            ? 'border-slate-900 bg-slate-800 text-white'
             : 'border-slate-200 bg-white hover:bg-slate-50'
         "
         @click="$emit('selectPlace', p.googlePlaceId)"
       >
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <p class="truncate text-[14px] font-bold">
-              {{ p.name }}
-              <span
-                class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                :class="
-                  p.googlePlaceId === activePlaceId
-                    ? 'bg-white/15 text-white'
-                    : 'bg-slate-100 text-slate-600'
-                "
-              >
-                {{ p.category ?? 'place' }}
-              </span>
-            </p>
-            <p
-              class="mt-1 line-clamp-2 text-[12px]"
-              :class="p.googlePlaceId === activePlaceId ? 'text-white/80' : 'text-slate-600'"
+        <div class="flex items-start gap-3">
+          <div
+            class="h-14 w-14 shrink-0 overflow-hidden rounded-lg border"
+            :class="p.googlePlaceId === activePlaceId ? 'border-white/20' : 'border-slate-200'"
+          >
+            <img
+              v-if="p.thumbnail"
+              :src="p.thumbnail"
+              alt="thumbnail"
+              class="h-full w-full object-cover"
+              loading="lazy"
+            />
+            <div
+              v-else
+              class="flex h-full w-full items-center justify-center bg-slate-100 text-[11px] text-slate-400"
             >
-              {{ p.address }}
-            </p>
+              no image
+            </div>
           </div>
 
-          <button
-            type="button"
-            class="cursor-pointer shrink-0 rounded-lg px-2 py-1 text-[12px] font-semibold"
-            :class="
-              p.googlePlaceId === activePlaceId
-                ? 'text-white/90 hover:bg-white/10'
-                : 'text-slate-500 hover:bg-slate-100'
-            "
-            @click.stop="$emit('removePlace', p.placeId)"
-          >
-            삭제
-          </button>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-start justify-between gap-3">
+              <p class="min-w-0 truncate text-[14px] font-bold">
+                {{ p.placeName ?? p.name }}
+                <span
+                  class="ml-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                  :class="
+                    p.googlePlaceId === activePlaceId
+                      ? 'bg-white/15 text-white'
+                      : 'bg-slate-100 text-slate-600'
+                  "
+                >
+                  {{ p.placeType ?? p.category ?? 'place' }}
+                </span>
+              </p>
+
+              <button
+                type="button"
+                class="cursor-pointer shrink-0 rounded-lg px-2 py-0.5 text-[12px] font-semibold"
+                :class="
+                  p.googlePlaceId === activePlaceId
+                    ? 'text-white/90 hover:bg-white/10'
+                    : 'text-slate-500 hover:bg-slate-100'
+                "
+                @click.stop="$emit('removePlace', p.placeId)"
+              >
+                삭제
+              </button>
+            </div>
+
+            <p
+              class="mt-1 line-clamp-2 text-[12px] leading-relaxed break-words"
+              :class="p.googlePlaceId === activePlaceId ? 'text-white/80' : 'text-slate-600'"
+            >
+              {{ p.placeAddress ?? p.address }}
+            </p>
+          </div>
         </div>
       </button>
     </div>
