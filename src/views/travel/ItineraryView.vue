@@ -36,14 +36,14 @@
         <div class="mt-1 flex items-center justify-between gap-3">
           <h1 class="text-[16px] font-bold text-slate-900">프로젝트 경로</h1>
 
-          <div class="flex items-center gap-2">
+          <div v-if="!isEmptyItinerary" class="flex items-center gap-2">
             <button
               type="button"
-              class="cursor-pointer h-9 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"
+              class="cursor-pointer h-9 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-primary transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
               :disabled="loading || saving || savingDay"
               @click="handleDeleteItinerary"
             >
-              경로 삭제
+              새 일정 만들기
             </button>
           </div>
         </div>
