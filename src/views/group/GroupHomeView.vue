@@ -32,12 +32,12 @@
               <span
                 class="inline-flex items-center rounded-full bg-white/15 px-3 py-1 font-medium backdrop-blur"
               >
-                ✨ 그룹 여행 프로젝트
+                ✨ AI 추천 코스
               </span>
               <span
                 class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 backdrop-blur"
               >
-                👥 인원, 장소, 일정 한 번에
+                👥 장소, 일정, 투표 한 번에
               </span>
             </div>
           </div>
@@ -101,7 +101,8 @@
           <div class="space-y-1">
             <h2 class="text-sm font-semibold text-slate-800">나의 그룹 여행</h2>
             <p class="text-[11px] text-slate-400">
-              진행 중 {{ ongoingCount }}건 · 완료 {{ completedCount }}건
+              예정 {{ upcomingCount }}건 · 진행 중 {{ ongoingCount }}건 · 완료
+              {{ completedCount }}건
             </p>
           </div>
 
@@ -145,7 +146,7 @@
         </div>
 
         <div v-if="isLoading" class="text-[12px] text-slate-400">
-          그룹 여행을 불러오는 중이에요...
+          그룹 여행을 불러오는 중입니다...
         </div>
         <div v-else-if="isError" class="text-[12px] text-rose-500">
           데이터를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
@@ -286,6 +287,9 @@ const sortedTrips = computed(() => {
   return base
 })
 
+const upcomingCount = computed(
+  () => filteredTrips.value.filter((t) => t.status === 'UPCOMING').length,
+)
 const ongoingCount = computed(
   () => filteredTrips.value.filter((t) => t.status === 'IN_PROGRESS').length,
 )
@@ -315,7 +319,7 @@ const handleUpdateTrip = async ({ id, dto, thumbnail }) => {
 }
 
 const handleDelete = async (id) => {
-  const ok = window.confirm('정말 이 여행을 삭제할까요? 복구할 수 없어요.')
+  const ok = window.confirm('정말 이 여행을 삭제할까요? 삭제하면 복구할 수 없습니다.')
   if (!ok) return
 
   try {
