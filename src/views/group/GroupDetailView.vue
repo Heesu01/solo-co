@@ -101,7 +101,7 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import GroupSidebar from '@/components/group/GroupSidebar.vue'
-import { fetchTravelPosts } from '@/api/group'
+import { fetchTravelPosts } from '@/api/project'
 
 const router = useRouter()
 const route = useRoute()

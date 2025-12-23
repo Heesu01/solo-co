@@ -134,7 +134,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { MapPinIcon, CalendarDaysIcon } from '@heroicons/vue/24/outline'
-import { fetchTravelDetail, removeMember } from '@/api/group'
+import { fetchTravelDetail, removeMember } from '@/api/project'
 
 defineEmits(['manage-member'])
 

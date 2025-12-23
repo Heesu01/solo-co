@@ -284,7 +284,7 @@
 <script setup>
 import { computed, ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { createTravel } from '@/api/group'
+import { createTravel } from '@/api/project'
 
 const route = useRoute()
 const router = useRouter()

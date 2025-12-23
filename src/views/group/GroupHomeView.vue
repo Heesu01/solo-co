@@ -197,7 +197,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import TripCard from '@/components/group/TripCard.vue'
-import { fetchGroupTravels, updateTravel, deleteTravel, createTravelInvite } from '@/api/group'
+import { fetchGroupTravels, updateTravel, deleteTravel, createTravelInvite } from '@/api/project'
 
 const router = useRouter()
 

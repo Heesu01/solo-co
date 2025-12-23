@@ -67,7 +67,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { validateInviteCode, joinTravelInvite } from '@/api/group'
+import { validateInviteCode, joinTravelInvite } from '@/api/project'
 
 const route = useRoute()
 const router = useRouter()
