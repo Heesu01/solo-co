@@ -23,7 +23,7 @@
       장소 추가
     </button>
 
-    <div v-if="showAddPanel" class="fixed inset-0 z-20 bg-transparent" @click="closeAddPanel"></div>
+    <!-- <div v-if="showAddPanel" class="fixed inset-0 z-20 bg-transparent" @click="closeAddPanel"></div> -->
 
     <aside
       class="absolute left-4 top-24 z-20 w-[380px] max-h-[calc(100vh-7.5rem)] overflow-auto rounded-2xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur"
@@ -49,7 +49,7 @@
         </div>
 
         <p class="mt-1 text-[12px] text-slate-600">
-          날짜별 경로를 확인하고 순서를 바꾸거나 장소를 삭제할 수 있어요.
+          날짜별 경로를 확인하고 장소를 수정할 수 있어요.
         </p>
 
         <p
@@ -165,7 +165,13 @@ import ItineraryMap from '@/components/travel/ItineraryMap.vue'
 import ItineraryDayEditor from '@/components/travel/ItineraryDayEditor.vue'
 import RightSearchPanel from '@/components/travel/RightSearchPanel.vue'
 
-import { fetchItinerary, updateItinerary, deleteItinerary } from '@/api/travel'
+import {
+  fetchItinerary,
+  updateItinerary,
+  deleteItinerary,
+  searchPlaces,
+  fetchPlaceDetails,
+} from '@/api/travel'
 
 const route = useRoute()
 const router = useRouter()
@@ -204,6 +210,8 @@ const searchResults = ref([])
 const searchMarkers = ref([])
 const activeSearchId = ref(null)
 const searchDetail = ref(null)
+
+const nextPageToken = ref(null)
 
 const placeKey = (p) => p?.googlePlaceId ?? p?.placeId ?? null
 
@@ -258,6 +266,16 @@ const mapCenter = computed(() => {
     (p) => typeof p?.lat === 'number' && typeof p?.lng === 'number',
   )
   if (first) return { lat: first.lat, lng: first.lng }
+
+  const sActive = searchResults.value.find((r) => r.placeId === activeSearchId.value)
+  if (typeof sActive?.lat === 'number' && typeof sActive?.lng === 'number') {
+    return { lat: sActive.lat, lng: sActive.lng }
+  }
+
+  const sFirst = searchResults.value.find(
+    (r) => typeof r?.lat === 'number' && typeof r?.lng === 'number',
+  )
+  if (sFirst) return { lat: sFirst.lat, lng: sFirst.lng }
 
   return { lat: 37.5665, lng: 126.978 }
 })
@@ -352,22 +370,13 @@ const handleRemovePlace = (key) => {
   }
 }
 
-const getPlacesService = () => {
-  if (!mapRef.value) return null
-  return new google.maps.places.PlacesService(mapRef.value)
-}
-
-const handleSearch = () => {
+const handleSearch = async () => {
   const q = String(searchQuery.value || '').trim()
   if (!q) {
     searchError.value = '검색어를 입력해 주세요.'
     return
   }
-  const svc = getPlacesService()
-  if (!svc) {
-    searchError.value = '지도가 준비되지 않았어요.'
-    return
-  }
+  if (!Number.isFinite(projectId.value)) return
 
   searchLoading.value = true
   searchError.value = ''
@@ -375,85 +384,102 @@ const handleSearch = () => {
   searchMarkers.value = []
   activeSearchId.value = null
   searchDetail.value = null
+  nextPageToken.value = null
 
-  const bounds = mapRef.value?.getBounds?.() || null
+  try {
+    const center = mapRef.value?.getCenter?.()
+    const location =
+      center && typeof center.lat === 'function' && typeof center.lng === 'function'
+        ? `${center.lat()},${center.lng()}`
+        : undefined
 
-  svc.textSearch({ query: q, bounds: bounds || undefined }, (results, status) => {
-    searchLoading.value = false
+    const data = await searchPlaces({
+      projectId: projectId.value,
+      query: q,
+      location,
+    })
 
-    if (status !== google.maps.places.PlacesServiceStatus.OK || !results?.length) {
-      searchError.value = '검색 결과가 없습니다.'
-      return
-    }
+    const places = Array.isArray(data?.places) ? data.places : []
+    nextPageToken.value = data?.nextPageToken ?? null
 
-    const mapped = results.slice(0, 20).map((r) => ({
-      placeId: r.place_id,
-      name: r.name ?? '',
-      address: r.formatted_address ?? '',
-      category: r.types && r.types[0] ? r.types[0] : 'place',
-      lat: r.geometry?.location?.lat?.(),
-      lng: r.geometry?.location?.lng?.(),
+    const mapped = places.map((p) => ({
+      placeId: p.placeId,
+      name: p.name ?? '',
+      address: p.formattedAddress ?? '',
+      category: p.tag ?? 'place',
+      lat: p.lat,
+      lng: p.lng,
     }))
 
     searchResults.value = mapped
+
     searchMarkers.value = mapped
       .filter((x) => typeof x.lat === 'number' && typeof x.lng === 'number')
       .map((x) => ({ id: x.placeId, lat: x.lat, lng: x.lng, title: x.name }))
 
+    if (!mapped.length) {
+      searchError.value = '검색 결과가 없습니다.'
+      return
+    }
+
     activeSearchId.value = mapped[0].placeId
-    loadPlaceDetail(mapped[0].placeId)
-  })
+    await loadPlaceDetail(mapped[0].placeId)
+  } catch (e) {
+    console.error(e)
+    searchError.value =
+      e?.response?.data?.message || e?.response?.data?.error || '검색 중 오류가 발생했습니다.'
+  } finally {
+    searchLoading.value = false
+  }
 }
 
-const loadPlaceDetail = (placeId) => {
-  const svc = getPlacesService()
-  if (!svc) return
+const loadPlaceDetail = async (placeId) => {
+  if (!placeId) return
+  if (!Number.isFinite(projectId.value)) return
 
+  const token = placeId
   searchError.value = ''
 
-  svc.getDetails(
-    {
-      placeId,
-      fields: [
-        'place_id',
-        'name',
-        'formatted_address',
-        'geometry',
-        'types',
-        'photos',
-        'rating',
-        'website',
-        'formatted_phone_number',
-        'opening_hours',
-      ],
-    },
-    (place, status) => {
-      if (status !== google.maps.places.PlacesServiceStatus.OK || !place) {
-        searchError.value = '상세 정보를 불러오지 못했어요.'
-        searchDetail.value = null
-        return
-      }
+  try {
+    searchLoading.value = true
 
-      searchDetail.value = {
-        placeId: place.place_id,
-        name: place.name ?? '',
-        address: place.formatted_address ?? '',
-        category: place.types?.[0] ?? 'place',
-        lat: place.geometry?.location?.lat?.(),
-        lng: place.geometry?.location?.lng?.(),
-        phone: place.formatted_phone_number ?? '',
-        rating: place.rating ?? null,
-        website: place.website ?? '',
-        openingHours: place.opening_hours?.weekday_text?.join(' / ') ?? '',
-        photos: (place.photos ?? []).slice(0, 8).map((p) => p.getUrl({ maxWidth: 800 })),
-      }
-    },
-  )
+    const res = await fetchPlaceDetails({
+      projectId: projectId.value,
+      placeId,
+    })
+
+    if (activeSearchId.value !== token) return
+
+    searchDetail.value = {
+      placeId: res?.placeId ?? placeId,
+      name: res?.name ?? '',
+      address: res?.formattedAddress ?? '',
+      category: Array.isArray(res?.types) && res.types.length ? res.types[0] : 'place',
+      lat: res?.geometry?.lat,
+      lng: res?.geometry?.lng,
+      phone: res?.formattedPhoneNumber ?? '',
+      rating: res?.rating ?? null,
+      website: res?.website ?? '',
+      openingHours:
+        Array.isArray(res?.openingHours) && res.openingHours.length
+          ? (res.openingHours[0]?.weekdayText ?? []).join(' / ')
+          : '',
+      photos: Array.isArray(res?.photoUrls) ? res.photoUrls.slice(0, 8) : [],
+    }
+  } catch (e) {
+    console.error(e)
+    if (activeSearchId.value !== token) return
+    searchDetail.value = null
+    searchError.value =
+      e?.response?.data?.message || e?.response?.data?.error || '상세 정보를 불러오지 못했어요.'
+  } finally {
+    if (activeSearchId.value === token) searchLoading.value = false
+  }
 }
 
-const handleSelectSearchResult = (placeId) => {
+const handleSelectSearchResult = async (placeId) => {
   activeSearchId.value = placeId
-  loadPlaceDetail(placeId)
+  await loadPlaceDetail(placeId)
 }
 
 const handleAddDetail = () => {

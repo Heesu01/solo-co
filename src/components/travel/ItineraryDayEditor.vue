@@ -8,7 +8,7 @@
           </p>
           <h3 class="mt-1 text-[14px] font-bold text-slate-900">DAY {{ day }}</h3>
           <p class="mt-1 text-[12px] text-slate-600">
-            드래그로 순서를 바꾸거나, 필요 없는 장소를 삭제할 수 있어요.
+            드래그로 순서를 바꾸거나, 장소를 추가·삭제할 수 있어요.
           </p>
         </div>
       </div>
