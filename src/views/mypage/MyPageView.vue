@@ -382,8 +382,11 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchMyProfile, updateMyProfile, deleteMyAccount, fetchTravels } from '@/api/my'
 import { MapPinIcon, CalendarIcon, UsersIcon } from '@heroicons/vue/24/outline'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { setUserName } = useAuth()
+const { clearAuth } = useAuth()
 
 const pickPayload = (res) => {
   const a = res?.data ?? res
@@ -605,6 +608,7 @@ const submitEdit = async () => {
   editSubmitting.value = true
   try {
     await updateMyProfile({ dto, file: pickedFile.value })
+    setUserName(dto.name)
     await loadMe()
     editOpen.value = false
   } catch (e) {
@@ -632,6 +636,7 @@ const confirmWithdraw = async () => {
   withdrawSubmitting.value = true
   try {
     await deleteMyAccount()
+    clearAuth()
     clearAuthStorage()
     alert('탈퇴가 완료됐어요.')
     await router.replace('/login')

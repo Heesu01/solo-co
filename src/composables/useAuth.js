@@ -15,6 +15,17 @@ function setAuth({ token, user }) {
   localStorage.setItem('user', JSON.stringify(user))
 }
 
+function setUser(user) {
+  state.user = user
+  localStorage.setItem('user', JSON.stringify(user))
+}
+
+function setUserName(name) {
+  if (!state.user) state.user = {}
+  state.user.name = name
+  localStorage.setItem('user', JSON.stringify(state.user))
+}
+
 function clearAuth() {
   state.token = null
   state.user = null
@@ -27,6 +38,8 @@ export function useAuth() {
     isAuthenticated,
     userName,
     setAuth,
+    setUser,
+    setUserName,
     clearAuth,
   }
 }
