@@ -156,46 +156,88 @@
 
                 <span
                   v-if="c.soloScore?.totalScore != null"
-                  class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700"
+                  class="inline-flex items-center rounded-full bg-primary-bg border border-light text-primary px-2 py-0.5 text-[11px] font-semibold"
                 >
                   총점 {{ c.soloScore.totalScore }}
                 </span>
 
-                <span
-                  v-if="c.soloScore?.safety != null"
-                  class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
+                <button
+                  type="button"
+                  class="ml-auto cursor-pointer shrink-0 rounded-lg bg-slate-900 px-3 py-2 text-[12px] font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  :disabled="applyingRouteType != null"
+                  @click.stop="$emit('applyAiRoute', c.routeType)"
                 >
-                  안전 {{ c.soloScore.safety }}
-                </span>
-
-                <span
-                  v-if="c.soloScore?.routeSimplicity != null"
-                  class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
-                >
-                  동선 {{ c.soloScore.routeSimplicity }}
-                </span>
+                  <span v-if="applyingRouteType === c.routeType">저장중…</span>
+                  <span v-else>저장</span>
+                </button>
               </div>
 
               <p v-if="c.summary" class="mt-2 text-[12px] text-slate-700">
                 {{ c.summary }}
               </p>
 
-              <p v-if="c.recommendation" class="mt-1 text-[12px] text-slate-600">
+              <!-- <p v-if="c.recommendation" class="mt-1 text-[12px] text-slate-600">
                 {{ c.recommendation }}
-              </p>
+              </p> -->
             </div>
-
-            <button
-              type="button"
-              class="cursor-pointer shrink-0 rounded-lg bg-slate-900 px-3 py-2 text-[12px] font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-              :disabled="applyingRouteType != null"
-              @click.stop="$emit('applyAiRoute', c.routeType)"
-            >
-              <span v-if="applyingRouteType === c.routeType">저장중…</span>
-              <span v-else>저장</span>
-            </button>
           </div>
 
+          <!-- 솔로 추가정보 -->
+          <div v-if="!hideCandidateDetail" class="mt-3">
+            <button
+              type="button"
+              class="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-200"
+              @click.stop="toggleCandidateDetail(c.routeType)"
+            >
+              <span>{{ openDetailRouteType === c.routeType ? '상세 닫기' : '상세 보기' }}</span>
+              <span class="text-slate-400">· 점수 산출 근거 / 추가 이유</span>
+            </button>
+
+            <div
+              v-if="openDetailRouteType === c.routeType"
+              class="mt-2 space-y-2 rounded-xl border border-slate-200 bg-white p-3"
+            >
+              <div v-if="c.reason" class="rounded-lg bg-white p-3">
+                <p class="text-[11px] font-semibold text-slate-500">새 장소 추가 이유</p>
+                <p
+                  class="mt-1 text-[12px] leading-relaxed text-slate-700 bg-slate-50 p-2 rounded-lg"
+                >
+                  {{ c.reason }}
+                </p>
+              </div>
+
+              <div v-if="c.soloScore?.scoreJustification" class="rounded-lg bg-white p-3">
+                <p class="text-[11px] font-semibold text-slate-500">점수 산출 근거</p>
+
+                <ul class="mt-2 space-y-2">
+                  <li
+                    v-for="item in scoreJustificationList(c)"
+                    :key="item.key"
+                    class="rounded-lg bg-slate-50 p-2"
+                  >
+                    <div class="flex items-center justify-between">
+                      <p class="text-[12px] font-bold text-slate-700">{{ item.label }}</p>
+                      <span
+                        class="rounded-full bg-primary-bg border border-light text-primary px-2 py-0.5 text-[11px] font-semibold"
+                      >
+                        {{ item.value }}
+                      </span>
+                    </div>
+                    <p class="mt-1 text-[12px] leading-relaxed text-slate-600">
+                      {{ item.text }}
+                    </p>
+                  </li>
+                </ul>
+              </div>
+
+              <div
+                v-if="!c.reason && !scoreJustificationList(c).length"
+                class="rounded-lg bg-white p-3 text-[12px] text-slate-500"
+              >
+                표시할 상세 정보가 없습니다.
+              </div>
+            </div>
+          </div>
           <div
             v-if="
               c.routeType === activeCandidateRouteType && Array.isArray(c.days) && c.days.length
@@ -245,7 +287,7 @@
           </div>
 
           <div v-if="hasNewPlace(c)" class="mt-3 text-[11px] font-semibold text-slate-500">
-            * 코스4는 새롭게 추천된 장소가 포함돼요.
+            * 새롭게 추천된 장소가 포함됐습니다.
           </div>
         </div>
 
@@ -261,6 +303,13 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+
+const hideCandidateDetail = computed(() => route.path.includes('/group'))
+
 defineProps({
   places: { type: Array, default: () => [] },
   activePlaceId: { type: String, default: null },
@@ -285,6 +334,40 @@ defineEmits([
   'previewAiCandidate',
   'previewAiDay',
 ])
+
+const openDetailRouteType = ref(null)
+
+const toggleCandidateDetail = (routeType) => {
+  openDetailRouteType.value = openDetailRouteType.value === routeType ? null : routeType
+}
+
+const scoreJustificationList = (c) => {
+  const s = c?.soloScore || {}
+  const j = s?.scoreJustification || {}
+
+  return [
+    { key: 'safety', label: '치안', value: s.safety, text: j.safety },
+    {
+      key: 'transportAccessibility',
+      label: '교통',
+      value: s.transportAccessibility,
+      text: j.transportAccessibility,
+    },
+    { key: 'routeSimplicity', label: '동선', value: s.routeSimplicity, text: j.routeSimplicity },
+    {
+      key: 'landmarkAccessibility',
+      label: '관광지 접근성',
+      value: s.landmarkAccessibility,
+      text: j.landmarkAccessibility,
+    },
+    {
+      key: 'soloDiningDifficulty',
+      label: '혼밥 난이도',
+      value: s.soloDiningDifficulty,
+      text: j.soloDiningDifficulty,
+    },
+  ].filter((it) => it.value != null && it.text)
+}
 
 const dayLine = (dayObj) => {
   const places = Array.isArray(dayObj?.places) ? dayObj.places : []

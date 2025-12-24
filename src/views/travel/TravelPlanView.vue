@@ -61,7 +61,7 @@
         <h3 class="mt-1 text-lg font-bold text-slate-900">코스 저장 완료</h3>
 
         <p class="mt-2 text-sm text-slate-600">
-          저장한 코스는 <span class="font-semibold text-slate-900">프로젝트 경로</span>에
+          저장한 코스는 <span class="font-semibold text-slate-900">프로젝트 일정</span>에
           추가됩니다. <br />지금 바로 확인하고 상세 수정도 할 수 있어요.
         </p>
 
@@ -71,7 +71,7 @@
             class="cursor-pointer h-11 flex-1 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50"
             @click="closeSavedModal"
           >
-            다시 담기
+            다시 선택
           </button>
 
           <button
@@ -79,7 +79,7 @@
             class="cursor-pointer h-11 flex-1 rounded-xl bg-gradient-to-r from-start to-end text-sm font-semibold text-white shadow-md transition hover:from-start-hover hover:to-end-hover"
             @click="goItinerary"
           >
-            경로 보러가기
+            일정 보러가기
           </button>
         </div>
       </div>

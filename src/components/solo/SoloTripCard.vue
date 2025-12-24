@@ -53,11 +53,6 @@
             <CalendarIcon class="h-3.5 w-3.5" />
             {{ dateLabel }}
           </span>
-
-          <span class="inline-flex items-center gap-1">
-            <UsersIcon class="h-3.5 w-3.5" />
-            {{ trip.memberCount ?? 1 }}명
-          </span>
         </div>
       </div>
     </header>
