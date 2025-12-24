@@ -163,6 +163,39 @@ const MetricCard = defineComponent({
       return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : 0
     })
 
+    const grade = computed(() => {
+      const v = finalValue.value
+      if (v >= 85) return 'good'
+      if (v >= 70) return 'normal'
+      return 'bad'
+    })
+
+    const colorSet = computed(() => {
+      switch (grade.value) {
+        case 'good':
+          return {
+            stroke: 'rgb(16 185 129)',
+            bg: 'bg-emerald-50',
+            text: 'text-emerald-700',
+            border: 'border-emerald-200/60',
+          }
+        case 'normal':
+          return {
+            stroke: 'rgb(56 189 248)',
+            bg: 'bg-sky-50',
+            text: 'text-sky-700',
+            border: 'border-sky-200/60',
+          }
+        default:
+          return {
+            stroke: 'rgb(244 63 94)',
+            bg: 'bg-rose-50',
+            text: 'text-rose-700',
+            border: 'border-rose-200/60',
+          }
+      }
+    })
+
     const progress = ref(0)
     let rafId = null
 
@@ -201,60 +234,75 @@ const MetricCard = defineComponent({
     const dash = computed(() => (c * progress.value) / 100)
 
     return () =>
-      h('div', { class: 'rounded-xl border border-slate-200 bg-white px-4 py-3' }, [
-        h('div', { class: 'flex items-start gap-3' }, [
-          h('div', { class: 'relative mt-0.5 h-14 w-14 shrink-0' }, [
-            h('svg', { width: size, height: size, viewBox: `0 0 ${size} ${size}` }, [
-              h('circle', {
-                cx: size / 2,
-                cy: size / 2,
-                r,
-                fill: 'none',
-                stroke: 'rgb(226 232 240)',
-                'stroke-width': stroke,
-              }),
-              h('circle', {
-                cx: size / 2,
-                cy: size / 2,
-                r,
-                fill: 'none',
-                stroke: 'rgb(15 23 42)',
-                'stroke-width': stroke,
-                'stroke-linecap': 'round',
-                'stroke-dasharray': `${dash.value} ${c - dash.value}`,
-                transform: `rotate(-90 ${size / 2} ${size / 2})`,
-              }),
-            ]),
-            h(
-              'div',
-              {
-                class:
-                  'absolute inset-0 flex items-center justify-center text-[13px] font-extrabold text-slate-900 tabular-nums',
-              },
-              String(Math.round(finalValue.value)),
-            ),
-          ]),
-
-          h('div', { class: 'min-w-0 flex-1' }, [
-            h('div', { class: 'flex items-center justify-between gap-2' }, [
-              h('p', { class: 'text-[13px] font-semibold text-slate-900' }, p.label),
+      h(
+        'div',
+        {
+          class: [
+            'rounded-xl border px-4 py-3 transition-colors',
+            'bg-white',
+            colorSet.value.bg,
+            colorSet.value.border,
+          ],
+        },
+        [
+          h('div', { class: 'flex items-start gap-3' }, [
+            h('div', { class: 'relative mt-0.5 h-14 w-14 shrink-0' }, [
+              h('svg', { width: size, height: size, viewBox: `0 0 ${size} ${size}` }, [
+                h('circle', {
+                  cx: size / 2,
+                  cy: size / 2,
+                  r,
+                  fill: 'none',
+                  stroke: 'rgb(226 232 240)',
+                  'stroke-width': stroke,
+                }),
+                h('circle', {
+                  cx: size / 2,
+                  cy: size / 2,
+                  r,
+                  fill: 'none',
+                  stroke: colorSet.value.stroke,
+                  'stroke-width': stroke,
+                  'stroke-linecap': 'round',
+                  'stroke-dasharray': `${dash.value} ${c - dash.value}`,
+                  transform: `rotate(-90 ${size / 2} ${size / 2})`,
+                }),
+              ]),
               h(
-                'span',
-                { class: 'text-[12px] font-bold text-slate-900 tabular-nums' },
+                'div',
+                {
+                  class: [
+                    'absolute inset-0 flex items-center justify-center text-[13px] font-extrabold tabular-nums',
+                    colorSet.value.text,
+                  ],
+                },
                 String(Math.round(finalValue.value)),
               ),
             ]),
 
-            p.hint ? h('p', { class: 'mt-0.5 text-[11px] text-slate-400' }, p.hint) : null,
+            h('div', { class: 'min-w-0 flex-1' }, [
+              h('div', { class: 'flex items-center justify-between gap-2' }, [
+                h('p', { class: 'text-[13px] font-semibold text-slate-900' }, p.label),
+                h(
+                  'span',
+                  {
+                    class: ['text-[12px] font-bold tabular-nums', colorSet.value.text],
+                  },
+                  String(Math.round(finalValue.value)),
+                ),
+              ]),
 
-            h(
-              'p',
-              { class: 'mt-1 line-clamp-2 text-[12px] leading-relaxed text-slate-600' },
-              p.reason || '근거 데이터 없음',
-            ),
+              p.hint ? h('p', { class: 'mt-0.5 text-[11px] text-slate-500' }, p.hint) : null,
+
+              h(
+                'p',
+                { class: 'mt-1 line-clamp-2 text-[12px] leading-relaxed text-slate-700' },
+                p.reason || '근거 데이터 없음',
+              ),
+            ]),
           ]),
-        ]),
-      ])
+        ],
+      )
   },
 })
 </script>

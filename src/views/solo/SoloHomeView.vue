@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-slate-50">
-    <div class="mx-auto max-w-6xl px-4 pt-24 pb-16 md:px-6">
+    <div class="mx-auto max-w-6xl px-4 pt-24 pb-16 md:px-6 mt-5">
       <section
         class="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-400 px-7 py-8 md:px-10 md:py-10 lg:px-14 lg:py-12 shadow-[0_20px_40px_rgba(15,23,42,0.25)]"
       >
