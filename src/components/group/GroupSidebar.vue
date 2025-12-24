@@ -109,7 +109,7 @@
               :disabled="!projectId"
               @click="goToItinerary"
             >
-              일정 보기
+              일정 상세보기
             </button>
             <button
               type="button"
