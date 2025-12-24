@@ -1,5 +1,6 @@
 <template>
   <article
+    ref="rootRef"
     class="group relative rounded-3xl border bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
     :class="trip.status === 'DONE' ? 'border-slate-200 bg-slate-50' : 'border-slate-100'"
   >
@@ -12,18 +13,19 @@
 
     <div
       v-if="showMenu"
+      ref="menuRef"
       class="absolute right-3 top-10 z-20 w-32 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
     >
       <button
         class="cursor-pointer block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-        @click="openEditModal"
+        @click.stop="openEditModal"
       >
         수정하기
       </button>
 
       <button
         class="cursor-pointer block w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
-        @click="emitDelete"
+        @click.stop="emitDelete"
       >
         삭제하기
       </button>
@@ -219,7 +221,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { MapPinIcon, CalendarIcon, UsersIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -231,6 +233,9 @@ const emit = defineEmits(['enter', 'delete', 'update'])
 const showMenu = ref(false)
 const showEditModal = ref(false)
 
+const rootRef = ref(null)
+const menuRef = ref(null)
+
 const editTitle = ref('')
 const editLocation = ref('')
 const editStartDate = ref('')
@@ -239,9 +244,34 @@ const editThumbnailPreview = ref('')
 const editThumbnailFile = ref(null)
 const editFileInputRef = ref(null)
 
+const closeMenu = () => {
+  showMenu.value = false
+}
+
 const toggleMenu = () => {
   showMenu.value = !showMenu.value
 }
+
+const onDocPointerDown = (e) => {
+  if (!showMenu.value) return
+  const rootEl = rootRef.value
+  if (rootEl && !rootEl.contains(e.target)) closeMenu()
+}
+
+const onDocKeyDown = (e) => {
+  if (!showMenu.value) return
+  if (e.key === 'Escape') closeMenu()
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', onDocPointerDown)
+  document.addEventListener('keydown', onDocKeyDown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onDocPointerDown)
+  document.removeEventListener('keydown', onDocKeyDown)
+})
 
 const openEditModal = () => {
   editTitle.value = props.trip.title || ''
@@ -252,7 +282,7 @@ const openEditModal = () => {
   editThumbnailFile.value = null
 
   showEditModal.value = true
-  showMenu.value = false
+  closeMenu()
 }
 
 const closeModals = () => {
@@ -263,7 +293,7 @@ const emitEnter = () => emit('enter', props.trip)
 
 const emitDelete = () => {
   emit('delete', props.trip.projectId)
-  showMenu.value = false
+  closeMenu()
 }
 
 const statusLabel = computed(() => {
