@@ -59,10 +59,7 @@
               </div>
               <div v-else class="h-[160px] w-full">
                 <div class="flex h-full items-center justify-center">
-                  <div class="text-center">
-                    <p class="text-[11px] font-semibold text-slate-500">화면 이미지</p>
-                    <p class="mt-1 text-[11px] text-slate-400">나중에 스샷</p>
-                  </div>
+                  <img :src="step1Image" alt="프로젝트 생성 화면 예시" class="h-full" />
                 </div>
                 <div
                   class="pointer-events-none absolute -left-10 -top-10 h-28 w-28 rounded-full bg-slate-200/35 blur-2xl"
@@ -71,11 +68,6 @@
                   class="pointer-events-none absolute -right-12 -bottom-12 h-32 w-32 rounded-full bg-slate-200/35 blur-2xl"
                 ></div>
               </div>
-            </div>
-
-            <div class="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
-              <p class="text-[11px] font-semibold text-slate-500">예시</p>
-              <p class="mt-0.5 text-[12px] text-slate-700">12/24~12/26 · 부산 · Solo</p>
             </div>
           </div>
         </div>
@@ -112,7 +104,7 @@
               가고 싶은 곳을 지도에서 모아둬요
             </p>
             <p class="mt-2 text-[12px] leading-relaxed text-slate-600">
-              카카오맵 기반으로 후보를 저장하고, 우선순위를 정리해요
+              구글맵 기반으로 후보를 저장하고, 우선순위를 정리해요
             </p>
 
             <div
@@ -128,8 +120,7 @@
               <div v-else class="h-[160px] w-full">
                 <div class="flex h-full items-center justify-center">
                   <div class="text-center">
-                    <p class="text-[11px] font-semibold text-slate-500">화면 이미지</p>
-                    <p class="mt-1 text-[11px] text-slate-400">나중에 스샷</p>
+                    <img :src="step2Image" alt="프로젝트 생성 화면 예시" class="h-full" />
                   </div>
                 </div>
                 <div
@@ -139,11 +130,6 @@
                   class="pointer-events-none absolute -right-12 -bottom-12 h-32 w-32 rounded-full bg-slate-200/35 blur-2xl"
                 ></div>
               </div>
-            </div>
-
-            <div class="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
-              <p class="text-[11px] font-semibold text-slate-500">예시</p>
-              <p class="mt-0.5 text-[12px] text-slate-700">서면 · 광안리 · 해운대</p>
             </div>
           </div>
         </div>
@@ -196,8 +182,7 @@
               <div v-else class="h-[160px] w-full">
                 <div class="flex h-full items-center justify-center">
                   <div class="text-center">
-                    <p class="text-[11px] font-semibold text-slate-500">화면 이미지</p>
-                    <p class="mt-1 text-[11px] text-slate-400">나중에 스샷</p>
+                    <img :src="step3Image" alt="프로젝트 생성 화면 예시" class="h-full" />
                   </div>
                 </div>
                 <div
@@ -207,11 +192,6 @@
                   class="pointer-events-none absolute -right-12 -bottom-12 h-32 w-32 rounded-full bg-slate-200/35 blur-2xl"
                 ></div>
               </div>
-            </div>
-
-            <div class="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
-              <p class="text-[11px] font-semibold text-slate-500">예시</p>
-              <p class="mt-0.5 text-[12px] text-slate-700">1일차 루트 3개 후보 생성</p>
             </div>
           </div>
         </div>
@@ -223,6 +203,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useReveal } from '@/composables/useReveal'
+import step1Image from '@/assets/home/one.png'
+import step2Image from '@/assets/home/two.png'
+import step3Image from '@/assets/home/three.png'
 
 const step1Img = null
 const step2Img = null

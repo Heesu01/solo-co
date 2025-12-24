@@ -38,7 +38,7 @@
                   <span
                     class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600"
                   >
-                    안전 우선
+                    혼밥 추천
                   </span>
                   <span
                     class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600"
@@ -84,8 +84,7 @@
                     <path d="M3 13l4-4 4 3 5-5 5 6" />
                   </svg>
 
-                  <p class="mt-2 text-[12px] font-semibold text-slate-500">화면 이미지</p>
-                  <p class="mt-0.5 text-[11px] text-slate-400">나중에 스샷</p>
+                  <img :src="soloImage" alt="프로젝트 생성 화면 예시" class="h-full" />
                 </div>
 
                 <div
@@ -114,7 +113,9 @@
                 </span>
                 <div>
                   <p class="font-semibold">난이도 지수</p>
-                  <p class="mt-0.5 text-slate-500">혼밥/이동/치안/동선 복잡도를 한 번에 보여줘요</p>
+                  <p class="mt-0.5 text-slate-500">
+                    안전성, 편의성, 접근성 등을 수치화해 한 번에 보여줘요
+                  </p>
                 </div>
               </li>
 
@@ -133,8 +134,8 @@
                   </svg>
                 </span>
                 <div>
-                  <p class="font-semibold">안전 경로 추천</p>
-                  <p class="mt-0.5 text-slate-500">야간 이동/혼잡 구간을 피하는 루트를 제안해요</p>
+                  <p class="font-semibold">혼밥 장소 추천</p>
+                  <p class="mt-0.5 text-slate-500">혼자서 편하게 식사할 수 있는 장소를 추천해요</p>
                 </div>
               </li>
 
@@ -239,8 +240,7 @@
                     <path d="M3 13l4-4 4 3 5-5 5 6" />
                   </svg>
 
-                  <p class="mt-2 text-[12px] font-semibold text-slate-500">화면 이미지</p>
-                  <p class="mt-0.5 text-[11px] text-slate-400">나중에 스샷</p>
+                  <img :src="coImage" alt="프로젝트 생성 화면 예시" class="h-full" />
                 </div>
 
                 <div
@@ -308,8 +308,8 @@
                   </svg>
                 </span>
                 <div>
-                  <p class="font-semibold">댓글로 합의 기록</p>
-                  <p class="mt-0.5 text-slate-500">결정 이유와 변경 기록이 남아서 혼선이 줄어요</p>
+                  <p class="font-semibold">그룹 일정 편집</p>
+                  <p class="mt-0.5 text-slate-500">AI 초안을 기준으로 날짜별로 쉽게 수정해요</p>
                 </div>
               </li>
             </ul>
@@ -339,6 +339,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useReveal } from '@/composables/useReveal'
+import soloImage from '@/assets/home/solo.png'
+import coImage from '@/assets/home/co.png'
 
 const router = useRouter()
 const go = (path) => router.push(path)
