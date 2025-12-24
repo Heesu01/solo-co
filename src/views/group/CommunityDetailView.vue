@@ -207,7 +207,7 @@ import {
   cancelTravelPostVote,
   createTravelPostComment,
   deleteTravelPostComment,
-} from '@/api/group'
+} from '@/api/project'
 
 const router = useRouter()
 const route = useRoute()

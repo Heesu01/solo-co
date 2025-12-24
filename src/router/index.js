@@ -4,6 +4,8 @@ import HomeView from '@/views/home/HomeView.vue'
 import LoginView from '@/views/auth/LoginView.vue'
 import SignupView from '@/views/auth/SignupView.vue'
 import SoloHomeView from '@/views/solo/SoloHomeView.vue'
+import SoloCreateView from '@/views/solo/SoloCreateView.vue'
+import SoloDetailView from '@/views/solo/SoloDetailView.vue'
 import GroupHomeView from '@/views/group/GroupHomeView.vue'
 import GroupCreateView from '@/views/group/GroupCreateView.vue'
 import GroupDetailView from '@/views/group/GroupDetailView.vue'
@@ -20,8 +22,10 @@ const routes = [
   { path: '/login', name: 'login', component: LoginView },
   { path: '/signup', name: 'signup', component: SignupView },
   { path: '/solo', name: 'solo-home', component: SoloHomeView },
+  { path: '/solo/:id', name: 'solo-detail', component: SoloDetailView },
   { path: '/solo/:id/travel', name: 'solo-travel', component: TravelPlanView },
   { path: '/solo/:id/itinerary', name: 'solo-itinerary', component: ItineraryView },
+  { path: '/solo/create', name: 'ProjectCreate', component: SoloCreateView },
   { path: '/group', name: 'group-home', component: GroupHomeView },
   { path: '/group/create', name: 'group-create', component: GroupCreateView },
   { path: '/group/:id', name: 'group-detail', component: GroupDetailView },

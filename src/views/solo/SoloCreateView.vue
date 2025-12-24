@@ -1,24 +1,26 @@
 <template>
   <div class="min-h-screen bg-slate-50 mt-10">
     <div
-      class="pointer-events-none fixed -left-20 top-10 h-40 w-40 rounded-full bg-sky-100/70 blur-3xl"
+      class="pointer-events-none fixed -left-20 top-10 h-40 w-40 rounded-full bg-rose-100/60 blur-3xl"
     ></div>
     <div
-      class="pointer-events-none fixed -right-10 top-64 h-40 w-40 rounded-full bg-indigo-100/70 blur-3xl"
+      class="pointer-events-none fixed -right-10 top-64 h-40 w-40 rounded-full bg-fuchsia-100/60 blur-3xl"
     ></div>
 
     <div class="relative mx-auto max-w-xl md:max-w-3xl px-4 pt-24 pb-24">
       <header class="mb-8">
-        <p class="text-[11px] md:text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-          group trip · solo&co
+        <p
+          class="text-[11px] md:text-xs font-semibold uppercase tracking-[0.18em] text-fuchsia-500"
+        >
+          solo trip · solo&co
         </p>
         <h1 class="mt-2 text-2xl md:text-3xl font-semibold leading-snug text-slate-900">
-          친구들과 떠날 여행,
+          혼자 떠나는 여행,
           <br />
-          정보를 조금씩 적어볼까요?
+          가볍게 기록부터 시작해볼까?
         </h1>
         <p class="mt-3 text-sm md:text-base text-slate-500">
-          프로젝트 이름 → 여행지 → 날짜 순서로 차근차근 입력하면, 아래로 단계가 자동으로 열려요.
+          프로젝트 이름 → 여행지 → 날짜 순서로 입력하면, 아래 단계가 자동으로 열려요.
         </p>
       </header>
 
@@ -26,12 +28,12 @@
         <section class="space-y-2">
           <div class="flex items-center justify-between text-xs md:text-sm text-slate-500">
             <p class="font-medium text-slate-700">여행 카드 표지</p>
-            <p class="text-slate-400">앨범에서 골라오면 커버처럼 예쁘게 보여드려요</p>
+            <p class="text-slate-400">감성 사진 하나만 올려도 분위기가 살아나요</p>
           </div>
 
           <button
             type="button"
-            class="group relative w-full overflow-hidden rounded-2xl border border-slate-100 bg-slate-100/80 text-left shadow-sm transition hover:border-sky-200 hover:shadow-md"
+            class="cursor-pointer group relative w-full overflow-hidden rounded-2xl border border-slate-100 bg-slate-100/80 text-left shadow-sm transition hover:border-fuchsia-200 hover:shadow-md"
             @click="triggerFileInput"
           >
             <div class="relative w-full">
@@ -46,7 +48,7 @@
 
               <div
                 v-else
-                class="cursor-pointer absolute inset-0 flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100"
+                class="cursor-pointer absolute inset-0 flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-rose-100 via-fuchsia-100 to-violet-100"
               >
                 <div
                   class="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-white/70 shadow-sm"
@@ -66,23 +68,23 @@
                   </svg>
                 </div>
                 <p class="text-sm md:text-base font-medium text-slate-800">
-                  여행의 분위기를 담은 사진을 골라보세요
+                  혼자 여행의 분위기를 담은 사진을 골라보세요
                 </p>
                 <p class="mt-1 text-xs md:text-[13px] text-slate-500">
-                  단체 사진, 여행지 전경, 밈 이미지도 좋아요!
+                  카페, 거리, 하늘, 음식 사진도 좋아요!
                 </p>
               </div>
 
               <div
                 v-if="thumbnailPreview"
-                class="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/40 via-black/10 to-transparent px-4 pb-3 pt-8 text-xs md:text-[13px] text-white"
+                class="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/45 via-black/10 to-transparent px-4 pb-3 pt-8 text-xs md:text-[13px] text-white"
               >
                 <div>
                   <p class="text-[10px] md:text-[11px] uppercase tracking-[0.16em] text-white/80">
                     cover preview
                   </p>
                   <p class="text-sm md:text-base font-semibold">
-                    {{ title.trim() || '새 그룹 여행' }}
+                    {{ title.trim() || '새 솔로 여행' }}
                   </p>
                   <p class="text-xs md:text-sm text-white/80">
                     {{ location.trim() || '여행지 미정' }}
@@ -115,7 +117,7 @@
             >
               <div class="flex items-start gap-3">
                 <div
-                  class="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary-bg text-[11px] font-semibold text-primary"
+                  class="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-rose-50 text-[11px] font-semibold text-rose-600"
                 >
                   1
                 </div>
@@ -124,7 +126,7 @@
                     프로젝트 이름이 뭐예요?
                   </p>
                   <p class="text-xs md:text-[13px] text-slate-400">
-                    나중에 목록에서 봐도 바로 알아볼 수 있는 이름이면 좋아요.
+                    나중에 목록에서 봐도 바로 떠오르는 이름이면 좋아요.
                   </p>
                 </div>
               </div>
@@ -133,8 +135,8 @@
                 <input
                   v-model="title"
                   type="text"
-                  placeholder="예: 2월 도쿄 졸업여행, 여름 제주 바캉스"
-                  class="w-full border-b border-slate-200 pb-2 text-sm md:text-base outline-none transition focus:border-sky-500"
+                  placeholder="예: 혼자 부산 2박 3일, 강남 혼카페 투어"
+                  class="w-full border-b border-slate-200 pb-2 text-sm md:text-base outline-none transition focus:border-fuchsia-500"
                 />
                 <p v-if="submitAttempted && !hasTitle" class="text-[11px] text-rose-500">
                   프로젝트 이름을 입력해주세요.
@@ -150,16 +152,16 @@
               >
                 <div class="flex items-start gap-3">
                   <div
-                    class="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-accent-bg text-[11px] font-semibold text-accent"
+                    class="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-fuchsia-50 text-[11px] font-semibold text-fuchsia-600"
                   >
                     2
                   </div>
                   <div class="flex-1 space-y-1">
                     <p class="text-sm md:text-base font-medium text-slate-900">
-                      어디로 떠날 예정인가요?
+                      어디로 떠날 건가요?
                     </p>
                     <p class="text-xs md:text-[13px] text-slate-400">
-                      도시 이름만 적어도 괜찮아요. 복수 도시라면 메인으로 생각하는 곳을 적어 주세요.
+                      도시/동네 이름만 적어도 괜찮아요. (예: 연남, 성수, 강릉)
                     </p>
                   </div>
                 </div>
@@ -168,8 +170,8 @@
                   <input
                     v-model="location"
                     type="text"
-                    placeholder="예: 도쿄, 제주, 부산, 오사카..."
-                    class="w-full border-b border-slate-200 pb-2 text-sm md:text-base outline-none transition focus:border-sky-500"
+                    placeholder="예: 부산, 강릉, 교토, 연남동..."
+                    class="w-full border-b border-slate-200 pb-2 text-sm md:text-base outline-none transition focus:border-fuchsia-500"
                   />
                   <p v-if="submitAttempted && !hasLocation" class="text-[11px] text-rose-500">
                     여행 장소를 입력해주세요.
@@ -186,7 +188,7 @@
               >
                 <div class="flex items-start gap-3">
                   <div
-                    class="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-pur-bg text-[11px] font-semibold text-pur"
+                    class="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-violet-50 text-[11px] font-semibold text-violet-600"
                   >
                     3
                   </div>
@@ -206,7 +208,7 @@
                     <input
                       v-model="startDate"
                       type="date"
-                      class="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-100"
+                      class="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm outline-none focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-100"
                     />
                   </div>
                   <div class="flex-1 space-y-1.5">
@@ -214,7 +216,7 @@
                     <input
                       v-model="endDate"
                       type="date"
-                      class="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-100"
+                      class="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm outline-none focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-100"
                     />
                   </div>
                 </div>
@@ -266,7 +268,7 @@
                 <div class="pt-2">
                   <button
                     type="submit"
-                    class="cursor-pointer flex h-11 w-full items-center justify-center rounded-full bg-gradient-to-r from-start to-end text-base font-semibold text-white shadow-sm transition hover:from-start-hover hover:to-end-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                    class="cursor-pointer flex h-11 w-full items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 text-base font-semibold text-white shadow-sm transition hover:from-accent hover:to-purple-500 disabled:opacity-40 disabled:cursor-not-allowed"
                     :disabled="!canSubmit || isSubmitting"
                   >
                     {{ isSubmitting ? '생성 중...' : '계획 시작하기' }}
@@ -283,12 +285,12 @@
 
 <script setup>
 import { computed, ref, watch, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { createTravel } from '@/api/project'
 
-const route = useRoute()
 const router = useRouter()
-const projectType = computed(() => (route.path.startsWith('/group') ? 'GROUP' : 'PERSONAL'))
+
+const projectType = computed(() => 'PERSONAL')
 
 const title = ref('')
 const location = ref('')
@@ -375,7 +377,7 @@ const handleSubmit = async () => {
     const res = await createTravel(payload)
     console.log(res.data)
 
-    router.push('/group')
+    router.push('/solo')
   } catch (err) {
     console.error(err)
     alert('여행 생성 중 문제가 발생했습니다.')

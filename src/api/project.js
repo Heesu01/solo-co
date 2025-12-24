@@ -24,6 +24,13 @@ export const fetchGroupTravels = () => {
   })
 }
 
+// 솔로 여행 목록 조회
+export const fetchSoloProjects = () => {
+  return api.get('/api/travels', {
+    params: { projectType: 'PERSONAL' },
+  })
+}
+
 // 여행 수정
 export const updateTravel = ({ projectId, dto, thumbnailFile }) => {
   const formData = new FormData()

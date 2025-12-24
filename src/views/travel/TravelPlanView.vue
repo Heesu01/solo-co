@@ -7,6 +7,7 @@
       :active-id="activeSavedPlaceId"
       :search-markers="searchMapMarkers"
       :active-search-id="activeSearchId"
+      :ai-markers="aiPreviewMarkers"
       @ready="onMapReady"
       @markerClick="handleSelectSavedPlace"
       @searchMarkerClick="handleSelectSearchMarker"
@@ -24,10 +25,14 @@
         :applying-route-type="applyingRouteType"
         :apply-error="applyError"
         :apply-help-text="applyHelpText"
+        :active-candidate-route-type="activeCandidateRouteType"
+        :active-candidate-day="activeCandidateDay"
         @selectPlace="handleSelectSavedPlace"
         @removePlace="handleRemoveSavedPlace"
         @requestAiRoutes="handleRequestAiRoutes"
         @applyAiRoute="handleApplyAiRoute"
+        @previewAiCandidate="handlePreviewAiCandidate"
+        @previewAiDay="handlePreviewAiDay"
       />
     </aside>
 
@@ -56,7 +61,7 @@
         <h3 class="mt-1 text-lg font-bold text-slate-900">코스 저장 완료</h3>
 
         <p class="mt-2 text-sm text-slate-600">
-          저장한 코스는 <span class="font-semibold text-slate-900">프로젝트 경로</span>에
+          저장한 코스는 <span class="font-semibold text-slate-900">프로젝트 일정</span>에
           추가됩니다. <br />지금 바로 확인하고 상세 수정도 할 수 있어요.
         </p>
 
@@ -66,7 +71,7 @@
             class="cursor-pointer h-11 flex-1 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50"
             @click="closeSavedModal"
           >
-            다시 담기
+            다시 선택
           </button>
 
           <button
@@ -74,12 +79,13 @@
             class="cursor-pointer h-11 flex-1 rounded-xl bg-gradient-to-r from-start to-end text-sm font-semibold text-white shadow-md transition hover:from-start-hover hover:to-end-hover"
             @click="goItinerary"
           >
-            경로 보러가기
+            일정 보러가기
           </button>
         </div>
       </div>
     </div>
   </div>
+  <OverlayLoading v-if="showAiOverlay" :text="aiOverlayText" />
 </template>
 
 <script setup>
@@ -89,6 +95,7 @@ import { useRoute, useRouter } from 'vue-router'
 import GoogleMap from '@/components/travel/GoogleMap.vue'
 import SavedListPanel from '@/components/travel/SavedListPanel.vue'
 import RightSearchPanel from '@/components/travel/RightSearchPanel.vue'
+import OverlayLoading from '@/components/OverlayLoading.vue'
 
 import {
   fetchTravelPlaces,
@@ -96,18 +103,19 @@ import {
   deleteTravelPlace,
   autoGenerateItinerary,
   selectAiItinerary,
+  searchPlaces,
+  fetchPlaceDetails,
 } from '@/api/travel'
 
 const route = useRoute()
 const router = useRouter()
 
 const projectId = computed(() => Number(route.params.id))
-
 const baseMode = computed(() => (route.path.startsWith('/group') ? 'group' : 'solo'))
 const itineraryPath = computed(() => `/${baseMode.value}/${projectId.value}/itinerary`)
 
 const applyHelpText = computed(
-  () => '저장한 코스는 프로젝트 경로에 추가됩니다. 지금 바로 확인하고 상세 수정도 할 수 있어요.',
+  () => '저장하면 프로젝트 일정에 추가됩니다. 저장 후 바로 확인하고 상세 수정도 할 수 있어요.',
 )
 
 const projectPlaces = ref([])
@@ -121,6 +129,9 @@ const aiError = ref('')
 const applyingRouteType = ref(null)
 const applyError = ref('')
 
+const activeCandidateRouteType = ref(null)
+const activeCandidateDay = ref(1)
+
 const searchQuery = ref('')
 const searchResults = ref([])
 const activeSearchId = ref(null)
@@ -130,10 +141,17 @@ const searchLoading = ref(false)
 const searchError = ref('')
 
 const mapRef = ref(null)
-let placesService = null
 
 const showSavedModal = ref(false)
 const savedRouteType = ref(null)
+
+const showAiOverlay = computed(() => aiLoading.value || applyingRouteType.value != null)
+
+const aiOverlayText = computed(() => {
+  if (aiLoading.value) return 'AI 코스 생성 중…'
+  if (applyingRouteType.value != null) return '코스 저장 중…'
+  return '로딩중…'
+})
 
 const closeSavedModal = () => {
   showSavedModal.value = false
@@ -147,12 +165,11 @@ const goItinerary = () => {
 
 const onMapReady = (map) => {
   mapRef.value = map
-  placesService = new google.maps.places.PlacesService(map)
 }
 
 const savedMapMarkers = computed(() =>
-  projectPlaces.value
-    .filter((p) => typeof p.lat === 'number' && typeof p.lng === 'number')
+  (Array.isArray(projectPlaces.value) ? projectPlaces.value : [])
+    .filter((p) => typeof p?.lat === 'number' && typeof p?.lng === 'number')
     .map((p) => ({
       id: p.googlePlaceId,
       lat: p.lat,
@@ -162,24 +179,69 @@ const savedMapMarkers = computed(() =>
 )
 
 const searchMapMarkers = computed(() =>
-  searchResults.value
-    .filter((r) => typeof r.lat === 'number' && typeof r.lng === 'number')
+  (Array.isArray(searchResults.value) ? searchResults.value : [])
+    .filter((r) => typeof r?.lat === 'number' && typeof r?.lng === 'number')
     .map((r) => ({ id: r.placeId, lat: r.lat, lng: r.lng, title: r.name })),
 )
 
+const activeCandidate = computed(
+  () =>
+    (Array.isArray(routeCandidates.value) ? routeCandidates.value : []).find(
+      (c) => c?.routeType === activeCandidateRouteType.value,
+    ) ?? null,
+)
+
+const activeCandidateDayPlaces = computed(() => {
+  const candidate = activeCandidate.value
+  if (!candidate) return []
+  const days = Array.isArray(candidate.days) ? candidate.days : []
+  const dayObj = days.find((d) => d?.day === activeCandidateDay.value) ?? days[0] ?? null
+  const places = Array.isArray(dayObj?.places) ? dayObj.places : []
+  return places
+})
+
+const aiPreviewMarkers = computed(() => {
+  const places = activeCandidateDayPlaces.value
+  return (Array.isArray(places) ? places : [])
+    .map((p, idx) => {
+      const lat = p?.latitude ?? p?.lat
+      const lng = p?.longitude ?? p?.lng
+      if (typeof lat !== 'number' || typeof lng !== 'number') return null
+      return {
+        id: `${activeCandidateRouteType.value || 'ai'}-${activeCandidateDay.value}-${idx}`,
+        order: idx + 1,
+        lat,
+        lng,
+        title: p?.placeName ?? p?.name ?? '',
+        isNew: !!p?.newPlace,
+        placeId: p?.placeId ?? null,
+        googlePlaceId: p?.googlePlaceId ?? null,
+      }
+    })
+    .filter(Boolean)
+})
+
 const mapCenter = computed(() => {
-  const savedActive = projectPlaces.value.find((p) => p.googlePlaceId === activeSavedPlaceId.value)
+  if (aiPreviewMarkers.value.length) {
+    return { lat: aiPreviewMarkers.value[0].lat, lng: aiPreviewMarkers.value[0].lng }
+  }
+
+  const savedActive = (Array.isArray(projectPlaces.value) ? projectPlaces.value : []).find(
+    (p) => p?.googlePlaceId === activeSavedPlaceId.value,
+  )
   if (typeof savedActive?.lat === 'number' && typeof savedActive?.lng === 'number') {
     return { lat: savedActive.lat, lng: savedActive.lng }
   }
 
-  const firstSaved = projectPlaces.value.find(
-    (p) => typeof p.lat === 'number' && typeof p.lng === 'number',
+  const firstSaved = (Array.isArray(projectPlaces.value) ? projectPlaces.value : []).find(
+    (p) => typeof p?.lat === 'number' && typeof p?.lng === 'number',
   )
   if (firstSaved) return { lat: firstSaved.lat, lng: firstSaved.lng }
 
-  const searchActive = searchResults.value.find((r) => r.placeId === activeSearchId.value)
-  if (searchActive?.lat && searchActive?.lng) {
+  const searchActive = (Array.isArray(searchResults.value) ? searchResults.value : []).find(
+    (r) => r?.placeId === activeSearchId.value,
+  )
+  if (typeof searchActive?.lat === 'number' && typeof searchActive?.lng === 'number') {
     return { lat: searchActive.lat, lng: searchActive.lng }
   }
 
@@ -222,7 +284,7 @@ const handleRemoveSavedPlace = async (placeId) => {
   if (!Number.isFinite(projectId.value)) return
 
   const removedGooglePlaceId =
-    projectPlaces.value.find((p) => p.placeId === placeId)?.googlePlaceId ?? null
+    projectPlaces.value.find((p) => p?.placeId === placeId)?.googlePlaceId ?? null
 
   try {
     await deleteTravelPlace({ projectId: projectId.value, placeId })
@@ -238,6 +300,16 @@ const handleRemoveSavedPlace = async (placeId) => {
   }
 }
 
+const handlePreviewAiCandidate = (routeType) => {
+  activeCandidateRouteType.value = routeType
+  activeCandidateDay.value = 1
+}
+
+const handlePreviewAiDay = ({ routeType, day }) => {
+  activeCandidateRouteType.value = routeType
+  activeCandidateDay.value = day
+}
+
 const handleRequestAiRoutes = async () => {
   if (!Number.isFinite(projectId.value)) return
   if (aiLoading.value) return
@@ -245,6 +317,10 @@ const handleRequestAiRoutes = async () => {
   aiLoading.value = true
   aiError.value = ''
   applyError.value = ''
+
+  activeCandidateRouteType.value = null
+  activeCandidateDay.value = 1
+
   try {
     routeCandidates.value = []
     aiResultId.value = null
@@ -256,10 +332,16 @@ const handleRequestAiRoutes = async () => {
 
     if (!aiResultId.value || routeCandidates.value.length === 0) {
       aiError.value = '추천 결과가 없습니다. 담은 장소를 늘리거나 다시 시도해보세요.'
+      return
+    }
+
+    const first = routeCandidates.value[0]
+    if (first?.routeType != null) {
+      activeCandidateRouteType.value = first.routeType
+      activeCandidateDay.value = 1
     }
   } catch (e) {
     console.error(e)
-
     if (e?.code === 'ECONNABORTED') {
       aiError.value = '추천 생성이 오래 걸리고 있어요. 잠시 후 다시 시도해 주세요.'
     } else {
@@ -299,51 +381,6 @@ const handleApplyAiRoute = async (routeType) => {
   }
 }
 
-const handleSearch = () => {
-  const q = searchQuery.value.trim()
-  if (!q) return
-
-  if (!placesService || !mapRef.value) {
-    searchError.value = '지도가 아직 준비되지 않았습니다.'
-    return
-  }
-
-  searchLoading.value = true
-  searchError.value = ''
-
-  placesService.textSearch(
-    {
-      query: q,
-      bounds: mapRef.value.getBounds() || undefined,
-    },
-    (results, status) => {
-      searchLoading.value = false
-
-      if (status !== google.maps.places.PlacesServiceStatus.OK || !Array.isArray(results)) {
-        searchResults.value = []
-        activeSearchId.value = null
-        selectedSearchDetail.value = null
-        searchError.value = '검색 결과가 없습니다.'
-        return
-      }
-
-      searchResults.value = results
-        .filter((r) => r.place_id && r.geometry?.location)
-        .map((r) => ({
-          placeId: r.place_id,
-          name: r.name ?? '',
-          address: r.formatted_address ?? r.vicinity ?? '',
-          category: Array.isArray(r.types) && r.types.length ? r.types[0] : 'place',
-          lat: r.geometry.location.lat(),
-          lng: r.geometry.location.lng(),
-        }))
-
-      activeSearchId.value = null
-      selectedSearchDetail.value = null
-    },
-  )
-}
-
 const clearSearch = () => {
   searchQuery.value = ''
   searchResults.value = []
@@ -352,70 +389,97 @@ const clearSearch = () => {
   selectedSearchDetail.value = null
 }
 
+const handleSearch = async () => {
+  const q = searchQuery.value.trim()
+  if (!q) return
+  if (!Number.isFinite(projectId.value)) return
+
+  searchLoading.value = true
+  searchError.value = ''
+  searchResults.value = []
+  activeSearchId.value = null
+  selectedSearchDetail.value = null
+
+  try {
+    const center = mapRef.value?.getCenter?.()
+    const location =
+      center && typeof center.lat === 'function' && typeof center.lng === 'function'
+        ? `${center.lat()},${center.lng()}`
+        : undefined
+
+    const res = await searchPlaces({
+      projectId: projectId.value,
+      query: q,
+      location,
+    })
+
+    const places = Array.isArray(res?.places) ? res.places : []
+    searchResults.value = places.map((p) => ({
+      placeId: p.placeId,
+      name: p.name ?? '',
+      address: p.formattedAddress ?? '',
+      category: p.tag ?? 'place',
+      lat: p.lat,
+      lng: p.lng,
+    }))
+  } catch (e) {
+    console.error(e)
+    searchError.value =
+      e?.response?.data?.message || e?.response?.data?.error || '검색 중 오류가 발생했습니다.'
+  } finally {
+    searchLoading.value = false
+  }
+}
+
 const handleSelectSearchResult = (placeId) => {
   handleSelectSearchMarker(placeId)
 }
 
-const handleSelectSearchMarker = (placeId) => {
+const handleSelectSearchMarker = async (placeId) => {
   activeSearchId.value = placeId
-  if (!placesService) return
+  if (!Number.isFinite(projectId.value)) return
 
   searchLoading.value = true
   searchError.value = ''
 
-  placesService.getDetails(
-    {
+  try {
+    const detail = await fetchPlaceDetails({
+      projectId: projectId.value,
       placeId,
-      fields: [
-        'place_id',
-        'name',
-        'formatted_address',
-        'formatted_phone_number',
-        'geometry',
-        'opening_hours',
-        'website',
-        'rating',
-        'types',
-        'photos',
-        'reviews',
-      ],
-    },
-    (place, status) => {
-      searchLoading.value = false
+    })
 
-      if (status !== google.maps.places.PlacesServiceStatus.OK || !place) {
-        selectedSearchDetail.value = null
-        searchError.value = '상세 정보를 불러오는 중 오류가 발생했습니다.'
-        return
-      }
-
-      const photoUrls =
-        place.photos?.slice(0, 6).map((p) => p.getUrl({ maxWidth: 640, maxHeight: 640 })) ?? []
-
-      const reviews =
-        place.reviews?.slice(0, 5).map((r) => ({
-          author: r.author_name ?? '',
-          rating: r.rating ?? null,
-          text: r.text ?? '',
-          time: r.relative_time_description ?? '',
-        })) ?? []
-
-      selectedSearchDetail.value = {
-        placeId: place.place_id,
-        name: place.name ?? '',
-        address: place.formatted_address ?? '',
-        phone: place.formatted_phone_number ?? '',
-        category: Array.isArray(place.types) && place.types.length ? place.types[0] : 'place',
-        lat: place.geometry?.location?.lat?.(),
-        lng: place.geometry?.location?.lng?.(),
-        openingHours: place.opening_hours?.weekday_text?.join(' / ') ?? '',
-        website: place.website ?? '',
-        rating: place.rating ?? null,
-        photos: photoUrls,
-        reviews,
-      }
-    },
-  )
+    selectedSearchDetail.value = {
+      placeId: detail?.placeId ?? placeId,
+      name: detail?.name ?? '',
+      address: detail?.formattedAddress ?? '',
+      phone: detail?.formattedPhoneNumber ?? '',
+      category: Array.isArray(detail?.types) && detail.types.length ? detail.types[0] : 'place',
+      lat: detail?.geometry?.lat ?? null,
+      lng: detail?.geometry?.lng ?? null,
+      openingHours:
+        Array.isArray(detail?.openingHours) && detail.openingHours[0]?.weekdayText
+          ? detail.openingHours[0].weekdayText.join(' / ')
+          : '',
+      website: detail?.website ?? '',
+      rating: detail?.rating ?? null,
+      photos: Array.isArray(detail?.photoUrls) ? detail.photoUrls.slice(0, 8) : [],
+      reviews: Array.isArray(detail?.reviews)
+        ? detail.reviews.slice(0, 5).map((r) => ({
+            author: r.authorName ?? '',
+            rating: r.rating ?? null,
+            text: r.text ?? '',
+            time: r.relativeTimeDescription ?? '',
+          }))
+        : [],
+    }
+  } catch (e) {
+    console.error(e)
+    selectedSearchDetail.value = null
+    searchError.value =
+      e?.response?.data?.message || e?.response?.data?.error || '상세 조회 중 오류가 발생했습니다.'
+  } finally {
+    searchLoading.value = false
+  }
 }
 
 const handleAddSelectedSearchPlace = async () => {
@@ -434,7 +498,6 @@ const handleAddSelectedSearchPlace = async () => {
     activeSearchId.value = null
   } catch (e) {
     console.error(e)
-
     const message =
       e?.response?.data?.message || e?.response?.data?.error || '장소 추가 중 오류가 발생했습니다.'
     alert(message)

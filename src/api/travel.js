@@ -55,3 +55,40 @@ export const deleteItinerary = async ({ projectId }) => {
   const res = await api.delete(`/api/travels/${projectId}/itinerary`)
   return res?.data
 }
+
+// 장소 검색
+export const searchPlaces = async ({ projectId, query, location, type, nextPageToken }) => {
+  const res = await api.get('/api/places/search', {
+    params: {
+      projectId,
+      query,
+      location,
+      type,
+      nextPageToken,
+    },
+  })
+
+  return res?.data
+}
+
+// 장소 상세 조회
+export const fetchPlaceDetails = async ({ projectId, placeId }) => {
+  const res = await api.get(`/api/places/${placeId}/brief`, {
+    params: { projectId },
+  })
+  return res?.data
+}
+
+// 혼밥 추천
+export const fetchSoloMealRecommend = async ({ latitude, longitude, radius = 5000 }) => {
+  const res = await api.get('/api/places/recommendations/solo-dining', {
+    params: {
+      latitude,
+      longitude,
+      radius,
+    },
+    timeout: 100000,
+  })
+
+  return res?.data
+}

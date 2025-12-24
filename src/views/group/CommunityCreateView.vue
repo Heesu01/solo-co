@@ -330,7 +330,7 @@
 <script setup>
 import { computed, reactive, ref, watch, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { createTravelPost } from '@/api/group'
+import { createTravelPost } from '@/api/project'
 import GroupSidebar from '@/components/group/GroupSidebar.vue'
 
 const router = useRouter()

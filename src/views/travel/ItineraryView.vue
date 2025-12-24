@@ -5,25 +5,45 @@
       :center="mapCenter"
       :markers="mapMarkers"
       :search-markers="searchMarkers"
+      :solo-meal-markers="soloMealMarkers"
       :active-id="activePlaceId"
       :active-search-id="activeSearchId"
+      :active-solo-meal-id="activeSoloMealId"
       @ready="onMapReady"
       @markerClick="handleMarkerClick"
       @searchMarkerClick="handleSearchMarkerClick"
+      @soloMealMarkerClick="handleSoloMealMarkerClick"
     />
 
-    <button
-      type="button"
-      class="cursor-pointer fixed bottom-6 right-6 z-30 inline-flex h-12 items-center gap-2 rounded-2xl bg-gradient-to-r from-start to-end px-5 text-[14px] font-bold text-white shadow-2xl transition hover:from-start-hover hover:to-end-hover active:scale-[0.98]"
-      @click="openAddPanel"
-    >
-      <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 5v14M5 12h14" stroke-linecap="round" />
-      </svg>
-      장소 추가
-    </button>
+    <div class="fixed bottom-6 right-6 z-30 flex items-center gap-2">
+      <button
+        type="button"
+        class="cursor-pointer inline-flex h-12 items-center gap-2 rounded-2xl bg-gradient-to-r from-start to-end px-5 text-[14px] font-bold text-white shadow-2xl transition hover:from-start-hover hover:to-end-hover active:scale-[0.98]"
+        @click="openAddPanel"
+      >
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+        </svg>
+        장소 추가
+      </button>
 
-    <div v-if="showAddPanel" class="fixed inset-0 z-20 bg-transparent" @click="closeAddPanel"></div>
+      <button
+        v-if="baseMode === 'solo'"
+        type="button"
+        class="cursor-pointer inline-flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-[14px] font-bold text-slate-800 shadow-xl transition hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+        :disabled="soloMealLoading"
+        @click="openSoloMealRecommend"
+      >
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+          <path
+            d="M4 7h16M7 7v14m10-14v14M9 11h6M9 15h6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        혼밥 추천
+      </button>
+    </div>
 
     <aside
       class="absolute left-4 top-24 z-20 w-[380px] max-h-[calc(100vh-7.5rem)] overflow-auto rounded-2xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur"
@@ -49,7 +69,7 @@
         </div>
 
         <p class="mt-1 text-[12px] text-slate-600">
-          날짜별 경로를 확인하고 순서를 바꾸거나 장소를 삭제할 수 있어요.
+          날짜별 경로를 확인하고 장소를 수정할 수 있어요.
         </p>
 
         <p
@@ -153,7 +173,20 @@
         />
       </aside>
     </transition>
+
+    <SoloMealRecommendModal
+      v-model="showSoloMealModal"
+      :results="soloMealResults"
+      :loading="soloMealLoading"
+      :error="soloMealError"
+      :selected-id="activeSoloMealId || ''"
+      @refresh="refreshSoloMeal"
+      @select="selectSoloMealFromList"
+      @add="addSoloMealToItinerary"
+    />
   </div>
+
+  <OverlayLoading v-if="soloMealLoading" text="근처 혼밥 장소를 찾는 중입니다 .." />
 </template>
 
 <script setup>
@@ -165,7 +198,17 @@ import ItineraryMap from '@/components/travel/ItineraryMap.vue'
 import ItineraryDayEditor from '@/components/travel/ItineraryDayEditor.vue'
 import RightSearchPanel from '@/components/travel/RightSearchPanel.vue'
 
-import { fetchItinerary, updateItinerary, deleteItinerary } from '@/api/travel'
+import SoloMealRecommendModal from '@/components/travel/SoloMealRecommendModal.vue'
+import OverlayLoading from '@/components/OverlayLoading.vue'
+
+import {
+  fetchItinerary,
+  updateItinerary,
+  deleteItinerary,
+  searchPlaces,
+  fetchPlaceDetails,
+  fetchSoloMealRecommend,
+} from '@/api/travel'
 
 const route = useRoute()
 const router = useRouter()
@@ -205,7 +248,18 @@ const searchMarkers = ref([])
 const activeSearchId = ref(null)
 const searchDetail = ref(null)
 
+const nextPageToken = ref(null)
+
 const placeKey = (p) => p?.googlePlaceId ?? p?.placeId ?? null
+
+const showSoloMealModal = ref(false)
+const soloMealLoading = ref(false)
+const soloMealError = ref('')
+const soloMealResults = ref([])
+const soloMealMarkers = ref([])
+const activeSoloMealId = ref(null)
+
+const soloMealRadius = ref(3000)
 
 const isEmptyItinerary = computed(() => {
   const dayList = Array.isArray(days.value) ? days.value : []
@@ -258,6 +312,21 @@ const mapCenter = computed(() => {
     (p) => typeof p?.lat === 'number' && typeof p?.lng === 'number',
   )
   if (first) return { lat: first.lat, lng: first.lng }
+
+  const sActive = searchResults.value.find((r) => r.placeId === activeSearchId.value)
+  if (typeof sActive?.lat === 'number' && typeof sActive?.lng === 'number') {
+    return { lat: sActive.lat, lng: sActive.lng }
+  }
+
+  const sFirst = searchResults.value.find(
+    (r) => typeof r?.lat === 'number' && typeof r?.lng === 'number',
+  )
+  if (sFirst) return { lat: sFirst.lat, lng: sFirst.lng }
+
+  const mFirst = soloMealResults.value.find(
+    (r) => typeof r?.lat === 'number' && typeof r?.lng === 'number',
+  )
+  if (mFirst) return { lat: mFirst.lat, lng: mFirst.lng }
 
   return { lat: 37.5665, lng: 126.978 }
 })
@@ -334,6 +403,110 @@ const handleSearchMarkerClick = (placeId) => {
   loadPlaceDetail(placeId)
 }
 
+const openSoloMealRecommend = async () => {
+  showSoloMealModal.value = false
+  await refreshSoloMeal()
+  if (soloMealResults.value.length) showSoloMealModal.value = true
+}
+
+const refreshSoloMeal = async () => {
+  if (!mapRef.value) {
+    soloMealError.value = '지도가 아직 준비되지 않았어요.'
+    return
+  }
+
+  const center = mapRef.value?.getCenter?.()
+  const lat =
+    center && typeof center.lat === 'function' ? Number(center.lat()) : Number(mapCenter.value.lat)
+  const lng =
+    center && typeof center.lng === 'function' ? Number(center.lng()) : Number(mapCenter.value.lng)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    soloMealError.value = '중심 좌표를 가져오지 못했어요.'
+    return
+  }
+
+  soloMealLoading.value = true
+  soloMealError.value = ''
+  soloMealResults.value = []
+  soloMealMarkers.value = []
+  activeSoloMealId.value = null
+
+  try {
+    const data = await fetchSoloMealRecommend({
+      latitude: lat,
+      longitude: lng,
+      radius: soloMealRadius.value,
+    })
+
+    const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []
+
+    soloMealResults.value = list
+
+    soloMealMarkers.value = list
+      .filter((x) => typeof x?.lat === 'number' && typeof x?.lng === 'number')
+      .map((x) => ({
+        id: x.placeId,
+        lat: x.lat,
+        lng: x.lng,
+        title: x.name ?? '',
+        score: x.soloDifficulty ?? null,
+      }))
+
+    if (!list.length) {
+      soloMealError.value = '추천 결과가 없어요.'
+      return
+    }
+
+    activeSoloMealId.value = list[0]?.placeId ?? null
+  } catch (e) {
+    console.error(e)
+    soloMealError.value =
+      e?.response?.data?.message || e?.response?.data?.error || '혼밥 추천을 불러오지 못했어요.'
+  } finally {
+    soloMealLoading.value = false
+  }
+}
+
+const handleSoloMealMarkerClick = (placeId) => {
+  if (!placeId) return
+  activeSoloMealId.value = placeId
+  showSoloMealModal.value = true
+}
+
+const selectSoloMealFromList = (placeId) => {
+  activeSoloMealId.value = placeId
+}
+
+const addSoloMealToItinerary = (place) => {
+  if (!place) return
+
+  const list = [...activeDayPlaces.value]
+
+  const exists = list.some((x) => x?.googlePlaceId === place.placeId)
+  if (exists) {
+    alert('이미 이 날짜에 추가된 장소예요.')
+    return
+  }
+
+  list.push({
+    placeId: null,
+    googlePlaceId: place.placeId,
+    name: place.name ?? '',
+    address: place.formattedAddress ?? '',
+    category: 'solo-meal',
+    lat: place.lat,
+    lng: place.lng,
+    thumbnail: Array.isArray(place.photoUrls) ? (place.photoUrls[0] ?? null) : null,
+    order: list.length + 1,
+  })
+
+  itineraryByDay.value = { ...itineraryByDay.value, [activeDay.value]: list }
+  activePlaceId.value = place.placeId
+
+  showSoloMealModal.value = false
+}
+
 const handleMovePlace = ({ fromIndex, toIndex }) => {
   const list = [...activeDayPlaces.value]
   if (fromIndex < 0 || toIndex < 0) return
@@ -352,22 +525,13 @@ const handleRemovePlace = (key) => {
   }
 }
 
-const getPlacesService = () => {
-  if (!mapRef.value) return null
-  return new google.maps.places.PlacesService(mapRef.value)
-}
-
-const handleSearch = () => {
+const handleSearch = async () => {
   const q = String(searchQuery.value || '').trim()
   if (!q) {
     searchError.value = '검색어를 입력해 주세요.'
     return
   }
-  const svc = getPlacesService()
-  if (!svc) {
-    searchError.value = '지도가 준비되지 않았어요.'
-    return
-  }
+  if (!Number.isFinite(projectId.value)) return
 
   searchLoading.value = true
   searchError.value = ''
@@ -375,85 +539,102 @@ const handleSearch = () => {
   searchMarkers.value = []
   activeSearchId.value = null
   searchDetail.value = null
+  nextPageToken.value = null
 
-  const bounds = mapRef.value?.getBounds?.() || null
+  try {
+    const center = mapRef.value?.getCenter?.()
+    const location =
+      center && typeof center.lat === 'function' && typeof center.lng === 'function'
+        ? `${center.lat()},${center.lng()}`
+        : undefined
 
-  svc.textSearch({ query: q, bounds: bounds || undefined }, (results, status) => {
-    searchLoading.value = false
+    const data = await searchPlaces({
+      projectId: projectId.value,
+      query: q,
+      location,
+    })
 
-    if (status !== google.maps.places.PlacesServiceStatus.OK || !results?.length) {
-      searchError.value = '검색 결과가 없습니다.'
-      return
-    }
+    const places = Array.isArray(data?.places) ? data.places : []
+    nextPageToken.value = data?.nextPageToken ?? null
 
-    const mapped = results.slice(0, 20).map((r) => ({
-      placeId: r.place_id,
-      name: r.name ?? '',
-      address: r.formatted_address ?? '',
-      category: r.types && r.types[0] ? r.types[0] : 'place',
-      lat: r.geometry?.location?.lat?.(),
-      lng: r.geometry?.location?.lng?.(),
+    const mapped = places.map((p) => ({
+      placeId: p.placeId,
+      name: p.name ?? '',
+      address: p.formattedAddress ?? '',
+      category: p.tag ?? 'place',
+      lat: p.lat,
+      lng: p.lng,
     }))
 
     searchResults.value = mapped
+
     searchMarkers.value = mapped
       .filter((x) => typeof x.lat === 'number' && typeof x.lng === 'number')
       .map((x) => ({ id: x.placeId, lat: x.lat, lng: x.lng, title: x.name }))
 
+    if (!mapped.length) {
+      searchError.value = '검색 결과가 없습니다.'
+      return
+    }
+
     activeSearchId.value = mapped[0].placeId
-    loadPlaceDetail(mapped[0].placeId)
-  })
+    await loadPlaceDetail(mapped[0].placeId)
+  } catch (e) {
+    console.error(e)
+    searchError.value =
+      e?.response?.data?.message || e?.response?.data?.error || '검색 중 오류가 발생했습니다.'
+  } finally {
+    searchLoading.value = false
+  }
 }
 
-const loadPlaceDetail = (placeId) => {
-  const svc = getPlacesService()
-  if (!svc) return
+const loadPlaceDetail = async (placeId) => {
+  if (!placeId) return
+  if (!Number.isFinite(projectId.value)) return
 
+  const token = placeId
   searchError.value = ''
 
-  svc.getDetails(
-    {
-      placeId,
-      fields: [
-        'place_id',
-        'name',
-        'formatted_address',
-        'geometry',
-        'types',
-        'photos',
-        'rating',
-        'website',
-        'formatted_phone_number',
-        'opening_hours',
-      ],
-    },
-    (place, status) => {
-      if (status !== google.maps.places.PlacesServiceStatus.OK || !place) {
-        searchError.value = '상세 정보를 불러오지 못했어요.'
-        searchDetail.value = null
-        return
-      }
+  try {
+    searchLoading.value = true
 
-      searchDetail.value = {
-        placeId: place.place_id,
-        name: place.name ?? '',
-        address: place.formatted_address ?? '',
-        category: place.types?.[0] ?? 'place',
-        lat: place.geometry?.location?.lat?.(),
-        lng: place.geometry?.location?.lng?.(),
-        phone: place.formatted_phone_number ?? '',
-        rating: place.rating ?? null,
-        website: place.website ?? '',
-        openingHours: place.opening_hours?.weekday_text?.join(' / ') ?? '',
-        photos: (place.photos ?? []).slice(0, 8).map((p) => p.getUrl({ maxWidth: 800 })),
-      }
-    },
-  )
+    const res = await fetchPlaceDetails({
+      projectId: projectId.value,
+      placeId,
+    })
+
+    if (activeSearchId.value !== token) return
+
+    searchDetail.value = {
+      placeId: res?.placeId ?? placeId,
+      name: res?.name ?? '',
+      address: res?.formattedAddress ?? '',
+      category: Array.isArray(res?.types) && res.types.length ? res.types[0] : 'place',
+      lat: res?.geometry?.lat,
+      lng: res?.geometry?.lng,
+      phone: res?.formattedPhoneNumber ?? '',
+      rating: res?.rating ?? null,
+      website: res?.website ?? '',
+      openingHours:
+        Array.isArray(res?.openingHours) && res.openingHours.length
+          ? (res.openingHours[0]?.weekdayText ?? []).join(' / ')
+          : '',
+      photos: Array.isArray(res?.photoUrls) ? res.photoUrls.slice(0, 8) : [],
+    }
+  } catch (e) {
+    console.error(e)
+    if (activeSearchId.value !== token) return
+    searchDetail.value = null
+    searchError.value =
+      e?.response?.data?.message || e?.response?.data?.error || '상세 정보를 불러오지 못했어요.'
+  } finally {
+    if (activeSearchId.value === token) searchLoading.value = false
+  }
 }
 
-const handleSelectSearchResult = (placeId) => {
+const handleSelectSearchResult = async (placeId) => {
   activeSearchId.value = placeId
-  loadPlaceDetail(placeId)
+  await loadPlaceDetail(placeId)
 }
 
 const handleAddDetail = () => {
@@ -523,7 +704,7 @@ const handleSaveAll = async () => {
     const places = buildUpdatePayloadPlacesAll()
     await updateItinerary({ projectId: projectId.value, places })
     await loadItinerary()
-    alert('경로 수정 완료')
+    // alert('경로 수정 완료')
   } catch (e) {
     console.error(e)
     alert(e?.response?.data?.message || '전체 저장 중 오류가 발생했습니다.')
