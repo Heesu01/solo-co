@@ -85,6 +85,7 @@
       </div>
     </div>
   </div>
+  <OverlayLoading v-if="showAiOverlay" :text="aiOverlayText" />
 </template>
 
 <script setup>
@@ -94,6 +95,7 @@ import { useRoute, useRouter } from 'vue-router'
 import GoogleMap from '@/components/travel/GoogleMap.vue'
 import SavedListPanel from '@/components/travel/SavedListPanel.vue'
 import RightSearchPanel from '@/components/travel/RightSearchPanel.vue'
+import OverlayLoading from '@/components/OverlayLoading.vue'
 
 import {
   fetchTravelPlaces,
@@ -142,6 +144,14 @@ const mapRef = ref(null)
 
 const showSavedModal = ref(false)
 const savedRouteType = ref(null)
+
+const showAiOverlay = computed(() => aiLoading.value || applyingRouteType.value != null)
+
+const aiOverlayText = computed(() => {
+  if (aiLoading.value) return 'AI 코스 생성 중…'
+  if (applyingRouteType.value != null) return '코스 저장 중…'
+  return '로딩중…'
+})
 
 const closeSavedModal = () => {
   showSavedModal.value = false

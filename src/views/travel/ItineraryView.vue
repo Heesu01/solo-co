@@ -5,25 +5,45 @@
       :center="mapCenter"
       :markers="mapMarkers"
       :search-markers="searchMarkers"
+      :solo-meal-markers="soloMealMarkers"
       :active-id="activePlaceId"
       :active-search-id="activeSearchId"
+      :active-solo-meal-id="activeSoloMealId"
       @ready="onMapReady"
       @markerClick="handleMarkerClick"
       @searchMarkerClick="handleSearchMarkerClick"
+      @soloMealMarkerClick="handleSoloMealMarkerClick"
     />
 
-    <button
-      type="button"
-      class="cursor-pointer fixed bottom-6 right-6 z-30 inline-flex h-12 items-center gap-2 rounded-2xl bg-gradient-to-r from-start to-end px-5 text-[14px] font-bold text-white shadow-2xl transition hover:from-start-hover hover:to-end-hover active:scale-[0.98]"
-      @click="openAddPanel"
-    >
-      <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 5v14M5 12h14" stroke-linecap="round" />
-      </svg>
-      장소 추가
-    </button>
+    <div class="fixed bottom-6 right-6 z-30 flex items-center gap-2">
+      <button
+        type="button"
+        class="cursor-pointer inline-flex h-12 items-center gap-2 rounded-2xl bg-gradient-to-r from-start to-end px-5 text-[14px] font-bold text-white shadow-2xl transition hover:from-start-hover hover:to-end-hover active:scale-[0.98]"
+        @click="openAddPanel"
+      >
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+        </svg>
+        장소 추가
+      </button>
 
-    <!-- <div v-if="showAddPanel" class="fixed inset-0 z-20 bg-transparent" @click="closeAddPanel"></div> -->
+      <button
+        v-if="baseMode === 'solo'"
+        type="button"
+        class="cursor-pointer inline-flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-[14px] font-bold text-slate-800 shadow-xl transition hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+        :disabled="soloMealLoading"
+        @click="openSoloMealRecommend"
+      >
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+          <path
+            d="M4 7h16M7 7v14m10-14v14M9 11h6M9 15h6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        혼밥 추천
+      </button>
+    </div>
 
     <aside
       class="absolute left-4 top-24 z-20 w-[380px] max-h-[calc(100vh-7.5rem)] overflow-auto rounded-2xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur"
@@ -153,7 +173,20 @@
         />
       </aside>
     </transition>
+
+    <SoloMealRecommendModal
+      v-model="showSoloMealModal"
+      :results="soloMealResults"
+      :loading="soloMealLoading"
+      :error="soloMealError"
+      :selected-id="activeSoloMealId || ''"
+      @refresh="refreshSoloMeal"
+      @select="selectSoloMealFromList"
+      @add="addSoloMealToItinerary"
+    />
   </div>
+
+  <OverlayLoading v-if="soloMealLoading" text="근처 혼밥 장소를 찾는 중입니다 .." />
 </template>
 
 <script setup>
@@ -165,12 +198,16 @@ import ItineraryMap from '@/components/travel/ItineraryMap.vue'
 import ItineraryDayEditor from '@/components/travel/ItineraryDayEditor.vue'
 import RightSearchPanel from '@/components/travel/RightSearchPanel.vue'
 
+import SoloMealRecommendModal from '@/components/travel/SoloMealRecommendModal.vue'
+import OverlayLoading from '@/components/OverlayLoading.vue'
+
 import {
   fetchItinerary,
   updateItinerary,
   deleteItinerary,
   searchPlaces,
   fetchPlaceDetails,
+  fetchSoloMealRecommend,
 } from '@/api/travel'
 
 const route = useRoute()
@@ -214,6 +251,15 @@ const searchDetail = ref(null)
 const nextPageToken = ref(null)
 
 const placeKey = (p) => p?.googlePlaceId ?? p?.placeId ?? null
+
+const showSoloMealModal = ref(false)
+const soloMealLoading = ref(false)
+const soloMealError = ref('')
+const soloMealResults = ref([])
+const soloMealMarkers = ref([])
+const activeSoloMealId = ref(null)
+
+const soloMealRadius = ref(3000)
 
 const isEmptyItinerary = computed(() => {
   const dayList = Array.isArray(days.value) ? days.value : []
@@ -276,6 +322,11 @@ const mapCenter = computed(() => {
     (r) => typeof r?.lat === 'number' && typeof r?.lng === 'number',
   )
   if (sFirst) return { lat: sFirst.lat, lng: sFirst.lng }
+
+  const mFirst = soloMealResults.value.find(
+    (r) => typeof r?.lat === 'number' && typeof r?.lng === 'number',
+  )
+  if (mFirst) return { lat: mFirst.lat, lng: mFirst.lng }
 
   return { lat: 37.5665, lng: 126.978 }
 })
@@ -350,6 +401,110 @@ const handleMarkerClick = (id) => {
 const handleSearchMarkerClick = (placeId) => {
   activeSearchId.value = placeId
   loadPlaceDetail(placeId)
+}
+
+const openSoloMealRecommend = async () => {
+  showSoloMealModal.value = false
+  await refreshSoloMeal()
+  if (soloMealResults.value.length) showSoloMealModal.value = true
+}
+
+const refreshSoloMeal = async () => {
+  if (!mapRef.value) {
+    soloMealError.value = '지도가 아직 준비되지 않았어요.'
+    return
+  }
+
+  const center = mapRef.value?.getCenter?.()
+  const lat =
+    center && typeof center.lat === 'function' ? Number(center.lat()) : Number(mapCenter.value.lat)
+  const lng =
+    center && typeof center.lng === 'function' ? Number(center.lng()) : Number(mapCenter.value.lng)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    soloMealError.value = '중심 좌표를 가져오지 못했어요.'
+    return
+  }
+
+  soloMealLoading.value = true
+  soloMealError.value = ''
+  soloMealResults.value = []
+  soloMealMarkers.value = []
+  activeSoloMealId.value = null
+
+  try {
+    const data = await fetchSoloMealRecommend({
+      latitude: lat,
+      longitude: lng,
+      radius: soloMealRadius.value,
+    })
+
+    const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []
+
+    soloMealResults.value = list
+
+    soloMealMarkers.value = list
+      .filter((x) => typeof x?.lat === 'number' && typeof x?.lng === 'number')
+      .map((x) => ({
+        id: x.placeId,
+        lat: x.lat,
+        lng: x.lng,
+        title: x.name ?? '',
+        score: x.soloDifficulty ?? null,
+      }))
+
+    if (!list.length) {
+      soloMealError.value = '추천 결과가 없어요.'
+      return
+    }
+
+    activeSoloMealId.value = list[0]?.placeId ?? null
+  } catch (e) {
+    console.error(e)
+    soloMealError.value =
+      e?.response?.data?.message || e?.response?.data?.error || '혼밥 추천을 불러오지 못했어요.'
+  } finally {
+    soloMealLoading.value = false
+  }
+}
+
+const handleSoloMealMarkerClick = (placeId) => {
+  if (!placeId) return
+  activeSoloMealId.value = placeId
+  showSoloMealModal.value = true
+}
+
+const selectSoloMealFromList = (placeId) => {
+  activeSoloMealId.value = placeId
+}
+
+const addSoloMealToItinerary = (place) => {
+  if (!place) return
+
+  const list = [...activeDayPlaces.value]
+
+  const exists = list.some((x) => x?.googlePlaceId === place.placeId)
+  if (exists) {
+    alert('이미 이 날짜에 추가된 장소예요.')
+    return
+  }
+
+  list.push({
+    placeId: null,
+    googlePlaceId: place.placeId,
+    name: place.name ?? '',
+    address: place.formattedAddress ?? '',
+    category: 'solo-meal',
+    lat: place.lat,
+    lng: place.lng,
+    thumbnail: Array.isArray(place.photoUrls) ? (place.photoUrls[0] ?? null) : null,
+    order: list.length + 1,
+  })
+
+  itineraryByDay.value = { ...itineraryByDay.value, [activeDay.value]: list }
+  activePlaceId.value = place.placeId
+
+  showSoloMealModal.value = false
 }
 
 const handleMovePlace = ({ fromIndex, toIndex }) => {
@@ -549,7 +704,7 @@ const handleSaveAll = async () => {
     const places = buildUpdatePayloadPlacesAll()
     await updateItinerary({ projectId: projectId.value, places })
     await loadItinerary()
-    alert('경로 수정 완료')
+    // alert('경로 수정 완료')
   } catch (e) {
     console.error(e)
     alert(e?.response?.data?.message || '전체 저장 중 오류가 발생했습니다.')
